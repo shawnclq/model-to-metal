@@ -1,0 +1,127 @@
+
+<header class="top">
+  <div class="wrap">
+    <button class="brand" id="homeBtn" aria-label="Model to Metal home">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M16 4 28 10 16 16 4 10Z"/><path d="M4 16l12 6 12-6" opacity=".7"/><path d="M4 22l12 6 12-6" opacity=".45"/></g><path d="M16 7.5 21.5 10 16 12.5 10.5 10Z" fill="currentColor"/></svg>
+      <b>MODEL TO METAL</b>
+    </button>
+    <span class="spacer"></span>
+    <button class="btn ghost" type="button" data-compare="1">Compare GPUs</button>
+    <button class="btn ghost mathbtn" id="mathBtn" aria-pressed="false" title="Show the numbers and formulas behind every result"><i aria-hidden="true"></i><span>Show the math</span></button>
+    <span class="xp"><span><strong id="xpNum">0</strong> XP</span><span class="hide-s"><strong id="doneNum">0</strong>/<span id="totNum">36</span> cleared</span></span>
+    <button class="btn ghost" id="levelsBtn" hidden>All levels</button>
+  </div>
+</header>
+
+<main id="home" class="wrap">
+  <section class="hero">
+    <div>
+      <h1>From the model <span>to the metal.</span></h1>
+      <p class="lede">Learn the GenAI stack layer by layer, with a simulator that runs in your browser, from how a model is built down to a multi-node GPU cluster. Load real open models onto H100s and Blackwells, split them across GPUs and servers, start a Ray cluster, and fix what breaks: models that won't fit, slow tokens, idle GPUs, crashing prompts, mismatched drivers, slow networks.</p>
+      <div class="cta">
+        <button class="btn signal" id="startBtn">Start level 1</button>
+        <button class="btn" data-level="lab1">Open GPU lab</button>
+        <button class="btn" data-level="lab2">Open kernel lab</button>
+      </div>
+      <p class="sub">Each level sets up one problem. Change the hardware, precision or software with the buttons or the terminal, hit the objectives, then read how it connects to the rest of the stack. Fewer hints means more stars. Turn on <b>Show the math</b> any time for the formulas.</p>
+    </div>
+    <pre class="demo" aria-label="Example session"><span class="d">$</span> <span class="a">foundry load llama-70b --dtype bf16</span>
+<span class="e">CUDA out of memory: needs 145.5 GB, H100 SXM has 80 GB</span>
+<span class="d">$</span> <span class="a">foundry dtype fp8</span>
+→ 74.9 / 80 GB · fits · 37.3 tok/s per user
+<span class="d">$</span> <span class="a">nvidia-smi</span>
+| GPU  Name                 | Memory-Usage        | GPU-Util |
+|   0  NVIDIA H100 80GB HBM3 | 71431MiB / 81559MiB |   <span class="o">100%</span>   |
+<span class="d">$</span> <span class="a">foundry gpu h200 &amp;&amp; foundry context 2k &amp;&amp; foundry batch 32</span>
+→ 95.1 / 141 GB · fits · <span class="o">1,335 tok/s</span> · $0.73 per 1M tokens</pre>
+  </section>
+
+  <section class="pier">
+    <div class="pier-head"><h2>Where this sits in the stack</h2><p>The ten layers from your GenAI stack, top to bottom. This game starts at the bottom.</p></div>
+    <div class="stackmap" id="stackMap"></div>
+  </section>
+
+  <div id="piers"></div>
+
+  <section class="pier">
+    <div class="pier-head"><h2>Coming next</h2><p>Same chip, wider view. These worlds aren't built yet.</p></div>
+    <div class="levels" id="soon"></div>
+  </section>
+
+  <section class="pier" id="glossHome"><div class="pier-head"><h2>Glossary</h2><p>The words the levels use, in one place.</p></div><dl class="gloss" id="glossList"></dl></section>
+  <div class="foot">
+    <span>Everything runs in a simplified model on this page. GPU specs are published peak figures (B200 uses its usable 180 GB), speeds assume ~80% of peak memory bandwidth and ~60% of peak compute, network and power figures are rough, and hourly prices are illustrative. Real systems differ in the details; the relationships hold.</span>
+    <span id="resetWrap"><button class="btn ghost" id="resetAll">Reset progress</button></span>
+  </div>
+</main>
+
+<main id="game" class="wrap game" hidden>
+  <section class="mission" id="mission" aria-live="polite">
+    <div class="eyebrow" id="mEyebrow"></div>
+    <h2 id="mTitle"></h2>
+    <span class="tag" id="mConcept"></span>
+    <div class="brief" id="mBrief"></div>
+    <div id="goalWrap">
+      <div class="lbl">Objectives</div>
+      <ul class="goals" id="mGoals"></ul>
+    </div>
+    <div id="hintWrap">
+      <div class="lbl">Hints</div>
+      <button class="btn" id="hintBtn">Show a hint</button>
+      <ol class="hints" id="mHints"></ol>
+    </div>
+    <div class="m-actions">
+      <button class="btn" id="restartBtn">Restart level</button>
+      <button class="btn" id="manualBtn" aria-expanded="false">Command list</button>
+      <button class="btn" id="glossBtn" aria-expanded="false">Glossary</button>
+    </div>
+    <div class="manual" id="manual" hidden></div>
+    <dl class="gloss gloss-side" id="glossSide" hidden></dl>
+  </section>
+  <section class="deck">
+    <div class="map stripcard" id="stripCard">
+      <div class="strip" id="strip"></div>
+      <div class="strip-note" id="stripNote"></div>
+    </div>
+    <div class="map" id="simCard">
+      <div class="map-head">
+        <h3 id="simTitle">GPU bench</h3>
+        <div id="simActs"></div>
+      </div>
+      <p class="map-cap" id="simCap"></p>
+      <div class="ctrls" id="ctrls"></div>
+      <div id="simBody"></div>
+    </div>
+    <div class="term" id="termCard">
+      <div class="term-bar"><i></i><i></i><i></i><span style="margin-left:6px">bash · buttons above type commands here too · ↑ for history</span></div>
+      <div class="out" id="out" role="log" aria-live="polite"></div>
+      <div class="chips" id="chips"></div>
+      <form class="cmd" id="cmdForm" autocomplete="off">
+        <label for="cmd">$</label>
+        <input id="cmd" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="nvidia-smi" aria-label="Command">
+        <button type="submit">Run</button>
+      </form>
+    </div>
+    <div class="quiz" id="quiz" hidden></div>
+  </section>
+</main>
+
+<div class="modal" id="cmpModal" hidden>
+  <div class="card wide" role="dialog" aria-modal="true" aria-labelledby="cmpTitle">
+    <div class="cmphead"><div><div class="eyebrow">Reference</div><h3 id="cmpTitle">Compare GPUs</h3></div><button class="btn" type="button" id="cmpClose">Close</button></div>
+    <div id="cmpBody"></div>
+  </div>
+</div>
+<div class="modal" id="modal" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <div class="eyebrow" id="dEyebrow">Level cleared</div>
+    <h3 id="dTitle"></h3>
+    <div class="big-stars" id="dStars"></div>
+    <div class="deb" id="dBody"></div>
+    <div class="acts">
+      <button class="btn signal" id="dNext">Next level</button>
+      <button class="btn" id="dStay">Keep exploring</button>
+      <button class="btn ghost" id="dLevels">All levels</button>
+    </div>
+  </div>
+</div>
