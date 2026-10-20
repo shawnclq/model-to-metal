@@ -1,6 +1,6 @@
 <script>
 "use strict";
-const AMD_LV={world:1,title:"Team red",concept:"AMD Instinct & ROCm",layers:{on:[9],near:[8]},gpus:ALL_GPUS,
+const AMD_LV={id:"amd-gpus",world:1,title:"Team red",concept:"AMD Instinct & ROCm",layers:{on:[9],near:[8]},gpus:ALL_GPUS,
   panels:["chip"],controls:["gpu","model","dtype","batch","ctx"],locks:{model:"The product team chose Llama 3.1 70B.",dtype:"Quality review signed off on FP8.",batch:"32 analysts at once.",ctx:"8,192-token conversations."},
   brief:`<p>The analytics team wants <b>Llama 3.1 70B</b> for <b>32 people</b> with <b>8k-token</b> conversations, on <b>one GPU</b>, and the budget is <b>$3 per GPU-hour</b>. That's 71 GB of weights plus 86 GB of KV cache: no Hopper GPU holds it, and Blackwell is over budget.</p><p>A cloud provider offers <b>AMD Instinct</b> GPUs. AMD builds its GPUs from <b>chiplets</b>: 8 small compute dies (XCDs) full of <b>Compute Units</b>, AMD's equivalent of SMs, surrounded by 8 HBM stacks. The software stack is <b>ROCm</b> instead of CUDA.</p><p>Find a GPU that fits within budget with at least 25 tokens/s per user. Then check it the AMD way: <code>nvidia-smi</code> won't work, <code>amd-smi</code> will.</p>`,
   setup(S){S.gpu="h200";S.model="llama-70b";S.dtype="fp8";S.batch=32;S.ctx=8192},
@@ -9,7 +9,7 @@ const AMD_LV={world:1,title:"Team red",concept:"AMD Instinct & ROCm",layers:{on:
   answer:()=>"foundry gpu mi300x && amd-smi",chips:["foundry status","foundry gpu mi300x","foundry gpu mi325x","amd-smi","nvidia-smi"],
   debrief:`<p>The MI300X's 192 GB holds the model and all 32 conversations on one GPU, at a lower hourly price than an H200 that can't fit it.</p><ul><li>AMD's pitch has been <b>more memory per GPU</b> at a lower price. MI325X (256 GB) and MI355X (288 GB) continue that.</li><li>The real question is <b>software</b>. ROCm (HIP, hipBLASLt, RCCL, MIOpen) mirrors CUDA, and vLLM, SGLang and PyTorch support it, but kernel tuning and new-model support often land on CUDA first. This game assumes equally good software on both; in practice, benchmark your own model.</li><li>Operationally it's a different toolbox: <code>amd-smi</code> instead of <code>nvidia-smi</code>, ROCm container images, the AMD GPU Operator on Kubernetes.</li></ul>`,
   links:{up:"Engines like vLLM hide most vendor differences from the application, if your model and features are supported on ROCm.",down:"World 2's whole software path has an AMD twin: HIP for CUDA, hipBLASLt for cuBLAS, RCCL for NCCL, the amdgpu driver for NVIDIA's."}};
-const PICK_LV={world:1,title:"Pick the GPU",concept:"Matching chip to workload",layers:{on:[9],near:[5,6]},gpus:ALL_GPUS,
+const PICK_LV={id:"gpu-choice",world:1,title:"Pick the GPU",concept:"Matching chip to workload",layers:{on:[9],near:[5,6]},gpus:ALL_GPUS,
   panels:["pick","chip"],controls:["workload","gpu"],
   brief:`<p>Three teams, three workloads, seven GPUs. For each workload, find a GPU that meets every requirement, then lock it in with <code>foundry pick</code>.</p><p>There's no single best GPU. Each workload has a different <b>bottleneck</b>: memory capacity, bandwidth, compute or budget. The trick is to spot which, then read the matching line of the spec sheet. The <b>Compare GPUs</b> button at the top has every spec side by side.</p><p>Prices are this game's illustrative ones; with your real quotes the answers can change.</p>`,
   setup(S){S.wl="chat";S.picks={};Object.assign(S,WL.chat.set);S.gpu="h100"},
@@ -25,15 +25,12 @@ const W1Q_AMD=[
  {q:"Before moving a production model to AMD GPUs, what should you check first?",o:["Whether nvidia-smi works","That your model, inference engine and kernels are supported and fast on ROCm","That the GPUs are red","Nothing: CUDA code runs unchanged"],a:1,why:"Specs set the ceiling; software decides how close you get. ROCm support for your exact model and engine version is the real risk."}
 ];
 (function(){
-  const qi=LEVELS.findIndex(l=>l.quiz&&l.world===1);LEVELS.splice(qi,0,AMD_LV,PICK_LV);LEVELS[qi+2].questions.push(...W1Q_AMD);
-  LEVELS.forEach((l,i)=>{l.id=i+1});
-  LEVELS.find(l=>l.title==="Checkpoint: one GPU").brief=`<p>Twelve questions on World 1. Pick an answer; wrong picks show why, and you can try again. Fewer mistakes, more stars.</p>`;
-  const drv=LEVELS.find(l=>l.title==="Driver says no"),tr=LEVELS.find(l=>l.title==="Follow one matmul");tr.debrief=tr.debrief.replace(/classic failure in level \d+/,"classic failure in level "+drv.id);
-  ["Meet the chip","Will it fit?","Room to talk","Fast chip, slow tokens","Fill the factory","Two speeds","Long memories","Many experts","Watts per token"].forEach(t=>{LEVELS.find(l=>l.title===t).gpus=NV_GPUS});
-  ["Meet the HGX board","Too big for one","The slow road","Shards or replicas?"].forEach(t=>{LEVELS.find(l=>l.title===t).srvs=["hgx","pcie"]});
-  const hb=LEVELS.find(l=>l.title==="Meet the HGX board");hb.debrief=hb.debrief.replace("</ul>",`<li>Other boards differ mainly in this fabric. HGX B200 doubles NVLink to 1.8 TB/s per GPU. AMD's 8 × MI300X board wires GPUs in a direct mesh with no switch. NVIDIA's GB200 NVL72 stretches one NVLink domain across 72 GPUs in a rack. Try them in the Server lab.</li></ul>`);
-  LABS.lab1.gpus=ALL_GPUS;LABS.lab3.srvs=Object.keys(SERVERS);
-  LABS.lab3.brief=`<p>8-GPU servers, every knob unlocked: HGX H100, a PCIe H100 box, HGX B200 with NVLink 5, and AMD's 8 × MI300X mesh. Compare the same model and TP size across all four.</p>`;
-  LABS.lab3.chips=["foundry status","foundry server hgxb200","foundry server mi300x","nvidia-smi topo -m","all_reduce_perf -b 8 -e 8G -f 16 -g 8"];
+  const qi=LEVELS.indexOf(findLevel("quiz-one-gpu"));LEVELS.splice(qi,0,AMD_LV,PICK_LV);LEVELS[qi+2].questions.push(...W1Q_AMD);
+  findLevel("quiz-one-gpu").brief=`<p>Twelve questions on World 1. Pick an answer; wrong picks show why, and you can try again. Fewer mistakes, more stars.</p>`;
+  ["gpu-anatomy","memory-fit","kv-cache-memory","memory-bandwidth","batching","prefill-decode","kv-quantisation","moe-on-gpu","perf-per-watt"].forEach(id=>{findLevel(id).gpus=NV_GPUS});
+  ["hgx-board","tensor-parallel","nvlink-vs-pcie","tp-vs-replicas"].forEach(id=>{findLevel(id).srvs=["hgx","pcie"]});
+  LABS[1].gpus=ALL_GPUS;LABS[3].srvs=Object.keys(SERVERS);
+  LABS[3].brief=`<p>8-GPU servers, every knob unlocked: HGX H100, a PCIe H100 box, HGX B200 with NVLink 5, and AMD's 8 × MI300X mesh. Compare the same model and TP size across all four.</p>`;
+  LABS[3].chips=["foundry status","foundry server hgxb200","foundry server mi300x","nvidia-smi topo -m","all_reduce_perf -b 8 -e 8G -f 16 -g 8"];
 })();
 </script>

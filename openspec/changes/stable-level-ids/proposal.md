@@ -10,7 +10,8 @@ Saved progress is keyed by a level's position in the list. Adding or moving a le
 - "World X, Level N" numbers stay, but are only for display. They are worked out from the level's position when the game loads.
 - Progress is saved by permanent ID under a new save key.
 - **BREAKING (save format):** a one-time conversion reads any existing `gf-progress-v4` save, maps each old number to its permanent ID, and writes the new format. No player loses progress.
-- XP is **calculated from stars** instead of stored as a running total. Players see the same XP as today. This prepares for merging saves from two devices without counting XP twice.
+- XP is **calculated from stars** instead of stored as a running total. This prepares for merging saves from two devices without counting XP twice.
+- **New XP values:** each star is worth 50 XP on a normal level (150 for 3 stars) and 75 XP on a checkpoint quiz (225 for 3 stars). Whole numbers per star mean no rounding, so the same stars always give the same XP. Quizzes stay worth 1.5× a normal level, as today. Every player's XP number goes up, because today's values are 100 and 150 for 3 stars. Nothing in the game depends on XP except the header.
 - Text that points at another level ("see level 11") refers to it by ID and is turned into "World X, Level N" when shown. This replaces the hand-patched text in the level files.
 
 ## Capabilities

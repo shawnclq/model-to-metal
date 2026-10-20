@@ -49,20 +49,20 @@ function pickHtml(S){const all=Object.keys(WL).every(k=>S.picks[k]);
 function cmpBest(vals,hi=true){const v=vals.filter(x=>typeof x==="number");const b=hi?Math.max(...v):Math.min(...v);return x=>x===b}
 function renderCompare(){
   const gs=ALL_GPUS.map(k=>GPUS[k]);
-  const lv=t=>{const l=LEVELS.find(x=>x.title===t);return l?`<button type="button" class="lvlink" data-level="${l.id}">W${l.world}·L${l.n}</button>`:""};
+  const lv=id=>{const l=LEVEL_BY_ID.get(id);return l?`<button type="button" class="lvlink" data-level="${l.id}">W${l.world}·L${l.n}</button>`:""};
   const row=(label,fn,num,hi,link)=>{const vals=gs.map(fn);const best=num?cmpBest(vals,hi):()=>false;return`<tr><th>${label}${link?" "+link:""}</th>${vals.map(v=>`<td class="${best(v)?"best":""}">${typeof v==="number"?(Number.isInteger(v)?f0(v):String(v)):v}</td>`).join("")}</tr>`};
   const t=`<div class="tlwrap"><table class="cmp"><thead><tr><th></th>${gs.map(g=>`<th class="${g.vendor}">${esc(g.name)}<small>${g.vendor==="amd"?"AMD":"NVIDIA"} · ${esc(g.arch)}</small></th>`).join("")}</tr></thead><tbody>
-   ${row("Memory (GB)",g=>g.mem,true,true,lv("Room to talk"))}
+   ${row("Memory (GB)",g=>g.mem,true,true,lv("kv-cache-memory"))}
    ${row("Memory type",g=>g.hbm,false)}
-   ${row("Bandwidth (TB/s)",g=>g.bw,true,true,lv("Fast chip, slow tokens"))}
+   ${row("Bandwidth (TB/s)",g=>g.bw,true,true,lv("memory-bandwidth"))}
    ${row("BF16 TFLOPS",g=>g.bf16,true,true)}
-   ${row("FP8 TFLOPS",g=>g.fp8,true,true,lv("Two speeds"))}
+   ${row("FP8 TFLOPS",g=>g.fp8,true,true,lv("prefill-decode"))}
    ${row("FP4 TFLOPS",g=>g.fp4||"—",true,true)}
    ${row("Compute blocks",g=>g.vendor==="amd"?`${g.cus} CUs on 8 chiplets`:`${g.sms} SMs on ${g.dies} die${g.dies>1?"s":""}`,false)}
-   ${row("GPU-to-GPU link",g=>g.link,false,true,lv("Meet the HGX board"))}
-   ${row("Power (W)",g=>g.tdp,true,false,lv("Watts per token"))}
+   ${row("GPU-to-GPU link",g=>g.link,false,true,lv("hgx-board"))}
+   ${row("Power (W)",g=>g.tdp,true,false,lv("perf-per-watt"))}
    ${row("Cooling",g=>g.tdp>1000?"liquid":"air or liquid",false)}
-   ${row("Software",g=>g.vendor==="amd"?"ROCm · HIP · RCCL":"CUDA · cuBLAS · NCCL",false,true,lv("Team red"))}
+   ${row("Software",g=>g.vendor==="amd"?"ROCm · HIP · RCCL":"CUDA · cuBLAS · NCCL",false,true,lv("amd-gpus"))}
    ${row("Price here ($/hr)",g=>"$"+f2(g.price),false)}
   </tbody></table></div>`;
   $("#cmpBody").innerHTML=`<p class="map-cap">Peak dense figures from vendor data sheets (sparse figures are 2× and rarely reachable). B200 memory is the usable 180 GB of 192. Hourly prices are this game's illustrative numbers, not quotes. Green marks the best in each row; the L-buttons open the level where that row matters.</p>

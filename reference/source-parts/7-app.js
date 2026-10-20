@@ -1,7 +1,31 @@
 <script>
 "use strict";
 /* ============ state ============ */
-let progress=store.get("gf-progress-v4",{xp:0,done:{}});if(!progress||typeof progress!=="object"||!progress.done)progress={xp:0,done:{}};
+/* ---- saved progress: best stars per permanent level ID. XP is never stored; it's worked out from stars. ---- */
+const SAVE_KEY="m2m-progress-v1",V4_KEY="gf-progress-v4";
+// FROZEN: the 36 levels in the order gf-progress-v4 numbered them (number 1 = index 0). Never edit or re-sort:
+// it decodes old saves forever, whatever happens to LEVELS later.
+const V4_IDS=["tokens","parameters","moe-experts","attention","attention-heads","generation","kv-cache-basics","quiz-inside-model",
+ "gpu-anatomy","memory-fit","kv-cache-memory","memory-bandwidth","batching","prefill-decode","kv-quantisation","moe-on-gpu","perf-per-watt","gpu-sharing","amd-gpus","gpu-choice","quiz-one-gpu",
+ "software-path","launch-overhead","kernel-fusion","driver-stack","quiz-software-path",
+ "hgx-board","tensor-parallel","nvlink-vs-pcie","tp-vs-replicas","quiz-one-server",
+ "fabric","multi-node","pipeline-parallel","data-parallel","quiz-cluster"];
+const XP_PER_STAR=50,XP_PER_STAR_QUIZ=75; // whole numbers per star, so XP never needs rounding
+const freshProgress=()=>({v:1,stars:{}});
+const validStars=n=>n===1||n===2||n===3;
+function loadProgress(){
+  const p=store.get(SAVE_KEY,null);
+  if(p&&typeof p==="object"&&p.v===1&&p.stars&&typeof p.stars==="object"&&!Array.isArray(p.stars))return p;
+  // No usable new save: convert a v4 save once if there is one. The v4 save itself is never written or deleted (rollback safety).
+  const old=store.get(V4_KEY,null),out=freshProgress();
+  if(old&&typeof old==="object"&&old.done&&typeof old.done==="object"){
+    for(const [k,n] of Object.entries(old.done)){const id=/^\d+$/.test(k)?V4_IDS[Number(k)-1]:undefined;if(id&&validStars(n))out.stars[id]=n}
+    store.set(SAVE_KEY,out)}
+  return out}
+let progress=loadProgress();
+// Entries for IDs not in LEVELS stay in the save untouched (a restored level gets its stars back); they just aren't counted.
+const starsOf=id=>{const n=progress.stars[id];return validStars(n)?n:0};
+const totalXp=()=>LEVELS.reduce((t,l)=>t+starsOf(l.id)*(l.quiz?XP_PER_STAR_QUIZ:XP_PER_STAR),0);
 const G={mode:"home",level:null,S:null,hints:0,won:false,hist:[],hi:0,strip:null,wt:null};
 const OUT=[];
 function freshState(world){
@@ -140,11 +164,11 @@ function foundry(t){if(foundryMore(t))return;const S=G.S,sub=(t[0]||"").toLowerC
    case"prompt":if(S.world===2&&!(L.controls||[]).includes("prompt2")){err("Locked in this level: the document is 32,768 tokens.");return}if(setNum("prompt",a,128,262144,"Prompt"))after();return;
    case"bench":if(!needWorld(1))return;bench();return;
    case"status":S.world===1?bench():afterAny();return;
-   case"roofline":case"roof":if(!needWorld(1))return;if(!(L.panels||[]).includes("roof")){err("The roofline opens from level 4 onward, and in the GPU lab.");return}
+   case"roofline":case"roof":if(!needWorld(1))return;if(!(L.panels||[]).includes("roof")){err(refs("The roofline opens from {{lvl:memory-bandwidth}} onward, and in the GPU lab."));return}
      if(a==="off"){S.showRoof=false;print("Roofline hidden.","dim");return}
      S.showRoof=true;S.flags.roof=true;{const M=w1(S);print(M.fits?`Roofline: decode at ${f1(M.I)} FLOPs/byte, ridge at ${f0(M.ridge)}. ${M.I<M.ridge?"Left of the ridge, so memory bandwidth is the limit.":"Right of the ridge, so compute is the limit."}`:"Roofline shown. Nothing is running yet: the model doesn't fit.","dim")}return;
    case"inspect":case"explain":inspect(a);return;
-   case"trace":if(!needWorld(2))return;if(!(L.panels||[]).includes("stack")){err(`The trace view is in World 2, level ${LEVELS.find(l=>l.title==="Follow one matmul").n}, and the kernel lab.`);return}trace();return;
+   case"trace":if(!needWorld(2))return;if(!(L.panels||[]).includes("stack")){err(refs("The trace view is in {{lvl:software-path}} and the kernel lab."));return}trace();return;
    case"graphs":case"cuda-graphs":if(!(L.controls||[]).includes("graphs")&&S.world===2){err("Not part of this level.");return}if(toggle("graphs",a))after();return;
    case"fuse":case"fusion":if(S.world===2&&!(L.controls||[]).includes("fuse")){err("Not part of this level.");return}if(toggle("fuse",a))after();return;
    case"flash":case"flashattention":if(S.world===2&&!(L.controls||[]).includes("flash")){err("Not part of this level.");return}if(toggle("flash",a))after();return;
@@ -154,7 +178,7 @@ function foundry(t){if(foundryMore(t))return;const S=G.S,sub=(t[0]||"").toLowerC
    case"help":case"":printHelp();return;
    default:err(`foundry: unknown command "${sub}". Type help.`)}}
 function printHelp(){const w=G.S.world;if(w===0){print(helpW0(),"dim");return}if(w>=3){print(helpMore(w),"dim");return}
-  if(w===1)print(`GPU COMMANDS (World 1)
+  if(w===1)print(refs(`GPU COMMANDS (World 1)
   nvidia-smi                          GPU status, the way operators see it
   foundry status | bench              memory, speed, cost for the current setup
   foundry gpu h100|h200|b200|b300     swap the GPU
@@ -163,9 +187,9 @@ function printHelp(){const w=G.S.world;if(w===0){print(helpW0(),"dim");return}if
   foundry batch N                     users served in the same step
   foundry context N                   tokens kept per conversation (8k ok)
   foundry prompt N                    prompt length for time to first token
-  foundry roofline [off]              show the roofline chart (level 4+)
+  foundry roofline [off]              show the roofline chart (from {{lvl:memory-bandwidth}})
   foundry inspect sm|hbm|bandwidth|link
-OTHER   clear   hint   help   ↑/↓ history   chain with &&`,"dim");
+OTHER   clear   hint   help   ↑/↓ history   chain with &&`),"dim");
   else print(`KERNEL COMMANDS (World 2, on an H100)
   nvidia-smi                          driver, CUDA version, GPU-Util
   foundry trace matmul                follow y = x @ W down the stack
@@ -205,22 +229,22 @@ function insert(txt){const i=$("#cmd");i.value=txt;try{i.focus();i.setSelectionR
 
 /* ============ game flow ============ */
 const ALL=()=>LEVELS;
-function saveProgress(){store.set("gf-progress-v4",progress);updateXp()}
-function updateXp(){$("#xpNum").textContent=progress.xp;$("#totNum").textContent=LEVELS.length;$("#doneNum").textContent=Object.keys(progress.done).filter(k=>LEVELS.some(l=>String(l.id)===k)).length}
-function nextLevelId(){const l=LEVELS.find(l=>!progress.done[l.id]);return l?l.id:null}
+function saveProgress(){store.set(SAVE_KEY,progress);updateXp()}
+function updateXp(){$("#xpNum").textContent=totalXp();$("#totNum").textContent=LEVELS.length;$("#doneNum").textContent=LEVELS.filter(l=>starsOf(l.id)).length}
+function nextLevelId(){const l=LEVELS.find(l=>!starsOf(l.id));return l?l.id:null}
 function starsHtml(n){return[1,2,3].map(i=>i<=n?"★":'<span class="off">★</span>').join("")}
 function renderHome(){const next=nextLevelId();
   $("#stackMap").innerHTML=LAYERS.map(x=>{const c=STACK_COVER[x.n];return`<div class="${c?c[1]:""}"><span class="num">${String(x.n).padStart(2,"0")}</span><span><b>${esc(x.name)}</b></span><span class="w">${c?c[0]:"later chapters"}</span></div>`}).join("");
-  $("#piers").innerHTML=WORLDS.map(W=>`<section class="pier"><div class="pier-head"><h2>${esc(W.h)}</h2><p>${esc(W.p)}</p></div><div class="levels">${LEVELS.filter(l=>l.world===W.w).map(l=>`<button class="lvl${l.id===next?" next":""}" data-level="${l.id}">${l.id===next?'<span class="badge">Up next</span>':""}<span class="n">${String(l.n).padStart(2,"0")}</span><span class="t">${esc(l.title)}</span><span class="c">${esc(l.concept)}</span><span class="stars">${progress.done[l.id]?starsHtml(progress.done[l.id]):'<span class="off">★★★</span>'}</span></button>`).join("")}${LABS["lab"+W.w]?`<button class="lvl lab" data-level="lab${W.w}"><span class="n">∞</span><span class="t">${LABS["lab"+W.w].title}</span><span class="c">Sandbox: every knob unlocked</span><span class="stars"></span></button>`:""}</div></section>`).join("");
+  $("#piers").innerHTML=WORLDS.map(W=>`<section class="pier"><div class="pier-head"><h2>${esc(W.h)}</h2><p>${esc(W.p)}</p></div><div class="levels">${LEVELS.filter(l=>l.world===W.w).map(l=>`<button class="lvl${l.id===next?" next":""}" data-level="${l.id}">${l.id===next?'<span class="badge">Up next</span>':""}<span class="n">${String(l.n).padStart(2,"0")}</span><span class="t">${esc(l.title)}</span><span class="c">${esc(l.concept)}</span><span class="stars">${starsOf(l.id)?starsHtml(starsOf(l.id)):'<span class="off">★★★</span>'}</span></button>`).join("")}${LABS[W.w]?`<button class="lvl lab" data-level="${LABS[W.w].id}"><span class="n">∞</span><span class="t">${LABS[W.w].title}</span><span class="c">Sandbox: every knob unlocked</span><span class="stars"></span></button>`:""}</div></section>`).join("");
   $("#soon").innerHTML=SOON.map(s=>`<div class="lvl soon" aria-disabled="true"><span class="n">${s.n}</span><span class="t">${esc(s.t)}</span><span class="c">${esc(s.c)}</span><span class="stars"></span></div>`).join("");
-  $("#startBtn").textContent=next?(next===1?"Start level 1":`Continue: level ${next}`):"Replay level 1";updateXp()}
+  $("#startBtn").textContent=next?(next===LEVELS[0].id?"Start level 1":refs(`Continue: {{lvl:${next}}}`)):"Replay level 1";updateXp()}
 function show(mode){G.mode=mode;$("#home").hidden=mode!=="home";$("#game").hidden=mode!=="game";$("#levelsBtn").hidden=mode!=="game";if(mode==="home"){renderHome();clearInterval(flickT)}try{window.scrollTo(0,0)}catch(e){}}
-function getLevel(id){if(LABS[id])return LABS[id];return LEVELS.find(l=>l.id===Number(id))}
+function getLevel(id){return LEVEL_BY_ID.get(id)||Object.values(LABS).find(l=>l.id===id)}
 function loadLevel(id){const L=getLevel(id);if(!L)return;$("#cmpModal").hidden=true;clearTimeout(G.tt);clearTimeout(G.wt);
   G.level=L;G.S=freshState(L.world);if(L.setup)L.setup(G.S);G.hints=0;G.won=false;G.strip=null;OUT.length=0;
   $("#mEyebrow").textContent=L.lab?`Sandbox · World ${L.world}`:`World ${L.world} · Level ${L.n}`;
-  $("#mTitle").textContent=L.title;$("#mConcept").textContent=L.concept;$("#mBrief").innerHTML=L.brief||(L.quiz?`<p>${L.questions.length} questions on what you just did. Pick an answer; wrong picks show why, and you can try again. Fewer mistakes, more stars.</p>`:"");
-  const gl=L.goals||[];$("#goalWrap").hidden=!gl.length;$("#mGoals").innerHTML=gl.map((g,i)=>`<li data-g="${i}">${esc(g.t)}</li>`).join("");
+  $("#mTitle").textContent=L.title;$("#mConcept").textContent=L.concept;$("#mBrief").innerHTML=refs(L.brief)||(L.quiz?`<p>${L.questions.length} questions on what you just did. Pick an answer; wrong picks show why, and you can try again. Fewer mistakes, more stars.</p>`:"");
+  const gl=L.goals||[];$("#goalWrap").hidden=!gl.length;$("#mGoals").innerHTML=gl.map((g,i)=>`<li data-g="${i}">${esc(refs(g.t))}</li>`).join("");
   $("#hintWrap").hidden=!L.answer;$("#mHints").innerHTML="";$("#hintBtn").hidden=false;$("#hintBtn").textContent="Show a hint";
   $("#manual").hidden=true;$("#manualBtn").setAttribute("aria-expanded","false");$("#glossSide").hidden=true;$("#glossBtn").setAttribute("aria-expanded","false");
   const quiz=!!L.quiz;$("#simCard").hidden=quiz;$("#termCard").hidden=quiz;$("#quiz").hidden=!quiz;$("#restartBtn").textContent=quiz?"Restart quiz":"Restart level";$("#manualBtn").hidden=quiz;
@@ -235,7 +259,7 @@ function loadLevel(id){const L=getLevel(id);if(!L)return;$("#cmpModal").hidden=t
   show("game");checkGoals()}
 function renderChips(){const L=G.level;$("#chips").innerHTML=(L.chips||[]).map(c=>`<button type="button" data-ins="${esc(c)}">${esc(c)}</button>`).join("")}
 function showHint(){const L=G.level;if(!L.answer)return;const total=L.hints.length+1;if(G.hints>=total)return;G.hints++;const ol=$("#mHints");ol.innerHTML="";
-  L.hints.slice(0,G.hints).forEach(h=>{const li=document.createElement("li");li.textContent=h;ol.appendChild(li)});
+  L.hints.slice(0,G.hints).forEach(h=>{const li=document.createElement("li");li.textContent=refs(h);ol.appendChild(li)});
   if(G.hints===total){const a=L.answer(G.S);const li=document.createElement("li");li.innerHTML=`<div class="answer"><span>Answer:</span> <code>${esc(a)}</code> <button class="btn" type="button" data-ins="${esc(a)}">Use it</button></div>`;ol.appendChild(li);$("#hintBtn").hidden=true}
   else $("#hintBtn").textContent=G.hints===total-1?"Show the answer":"Next hint"}
 const goalOk=(L,S)=>L.goals.map(g=>{try{return!!g.ok(S)}catch(e){return false}});
@@ -244,12 +268,12 @@ function checkGoals(){const L=G.level;if(!L||L.quiz||!G.S)return;const res=goalO
   if(G.won||!L.goals.length)return;clearTimeout(G.wt);
   if(res.every(Boolean)){const S=G.S;G.wt=setTimeout(()=>{if(G.level===L&&G.S===S&&!G.won&&goalOk(L,S).every(Boolean))win()},900)}}
 function win(stars){const L=G.level;G.won=true;if(stars===undefined){const total=L.hints.length+1;stars=G.hints===0?3:G.hints<total?2:1}
-  const prev=progress.done[L.id]||0;if(stars>prev){progress.xp+=Math.round(((stars-prev)/3)*(L.quiz?150:100));progress.done[L.id]=stars;saveProgress()}
+  if(stars>starsOf(L.id)){progress.stars[L.id]=stars;saveProgress()} // stars only go up
   $("#dEyebrow").textContent=L.quiz?"Checkpoint complete":`World ${L.world} · Level ${L.n} cleared`;$("#dTitle").textContent=L.title;$("#dStars").innerHTML=starsHtml(stars);
-  $("#dBody").innerHTML=L.debrief+(L.links?`<div class="links"><div><b>↑ Up</b><span>${esc(L.links.up)}</span></div><div><b>↓ Down</b><span>${esc(L.links.down)}</span></div></div>`:"")+(stars<3?`<p style="color:var(--muted);font-size:13px;margin-top:10px">${L.quiz?"Retake with fewer wrong picks for 3 stars.":"Replay without the answer hint for 3 stars."}</p>`:"");
-  const nxt=LEVELS.find(l=>l.id===L.id+1);$("#dNext").hidden=!nxt;if(nxt)$("#dNext").textContent=`Next: ${nxt.title}`;$("#modal").hidden=false;try{$("#dNext").hidden?$("#dStay").focus():$("#dNext").focus()}catch(e){}}
+  $("#dBody").innerHTML=refs(L.debrief)+(L.links?`<div class="links"><div><b>↑ Up</b><span>${esc(refs(L.links.up))}</span></div><div><b>↓ Down</b><span>${esc(refs(L.links.down))}</span></div></div>`:"")+(stars<3?`<p style="color:var(--muted);font-size:13px;margin-top:10px">${L.quiz?"Retake with fewer wrong picks for 3 stars.":"Replay without the answer hint for 3 stars."}</p>`:"");
+  const nxt=L.lab?null:LEVELS[L.idx+1];$("#dNext").hidden=!nxt;if(nxt)$("#dNext").textContent=`Next: ${nxt.title}`;$("#modal").hidden=false;try{$("#dNext").hidden?$("#dStay").focus():$("#dNext").focus()}catch(e){}}
 function renderQuiz(){const L=G.level,st=G.quizState;
-  $("#quiz").innerHTML=L.questions.map((q,i)=>{const done=st.picked[i].includes(q.a);return`<div class="q"><h4>${i+1}. ${esc(q.q)}</h4><div class="opts">${q.o.map((o,j)=>`<button type="button" data-q="${i}" data-o="${j}" class="${st.picked[i].includes(j)?(j===q.a?"right":"wrong"):""}" ${done?"disabled":""}>${esc(o)}</button>`).join("")}</div>${done?`<div class="why">${esc(q.why)}</div>`:st.picked[i].length?`<div class="why">Not quite. Try another answer.</div>`:""}</div>`}).join("");
+  $("#quiz").innerHTML=L.questions.map((q,i)=>{const done=st.picked[i].includes(q.a);return`<div class="q"><h4>${i+1}. ${esc(refs(q.q))}</h4><div class="opts">${q.o.map((o,j)=>`<button type="button" data-q="${i}" data-o="${j}" class="${st.picked[i].includes(j)?(j===q.a?"right":"wrong"):""}" ${done?"disabled":""}>${esc(refs(o))}</button>`).join("")}</div>${done?`<div class="why">${esc(refs(q.why))}</div>`:st.picked[i].length?`<div class="why">Not quite. Try another answer.</div>`:""}</div>`}).join("");
   if(L.questions.every((q,i)=>st.picked[i].includes(q.a))&&!G.won){const m=st.mistakes;setTimeout(()=>win(m===0?3:m<=2?2:1),500)}}
 function renderManual(){const w=G.S?G.S.world:1;if(w===0){$("#manual").innerHTML=manualW0().map(([h,cs])=>`<h4>${h}</h4>`+cs.map(([c,d])=>`<button type="button" data-ins="${esc(c)}">${esc(c)}${d?`<span>${esc(d)}</span>`:""}</button>`).join("")).join("");return}if(w>=3){$("#manual").innerHTML=manualMore(w).map(([h,cs])=>`<h4>${h}</h4>`+cs.map(([c,d])=>`<button type="button" data-ins="${esc(c)}">${esc(c)}${d?`<span>${esc(d)}</span>`:""}</button>`).join("")).join("");return}
   const W1=[["Status",[["nvidia-smi","GPU status"],["foundry status","memory, speed, cost"],["foundry bench","full benchmark"]]],["Hardware",[["foundry gpu h100",""],["foundry gpu h200",""],["foundry gpu b200",""],["foundry gpu b300",""]]],["Model & precision",[["foundry load llama-70b",""],["foundry dtype fp8",""],["foundry dtype int4","weight-only"],["foundry dtype fp4","Blackwell only"]]],["Workload",[["foundry batch 32","users per step"],["foundry context 8192","tokens per conversation"],["foundry prompt 16384","for first-token time"]]],["Look closer",[["foundry roofline",""],["foundry inspect sm",""],["foundry inspect hbm",""]]]];
@@ -277,20 +301,20 @@ document.addEventListener("click",e=>{
 $("#cmdForm").addEventListener("submit",e=>{e.preventDefault();const i=$("#cmd");run(i.value);i.value=""});
 $("#cmd").addEventListener("keydown",e=>{if(e.key==="ArrowUp"){if(G.hi>0){G.hi--;e.target.value=G.hist[G.hi]||""}e.preventDefault()}else if(e.key==="ArrowDown"){if(G.hi<G.hist.length){G.hi++;e.target.value=G.hist[G.hi]||""}e.preventDefault()}});
 $("#homeBtn").onclick=()=>show("home");$("#levelsBtn").onclick=()=>show("home");
-$("#startBtn").onclick=()=>loadLevel(nextLevelId()||1);
+$("#startBtn").onclick=()=>loadLevel(nextLevelId()||LEVELS[0].id);
 $("#hintBtn").onclick=showHint;
 $("#restartBtn").onclick=()=>loadLevel(G.level.lab?G.level.id:G.level.id);
 $("#manualBtn").onclick=()=>{const m=$("#manual"),open=m.hidden;if(open)renderManual();m.hidden=!open;$("#manualBtn").setAttribute("aria-expanded",String(open))};
 $("#glossBtn").onclick=()=>{const m=$("#glossSide"),open=m.hidden;if(open)renderGloss(m);m.hidden=!open;$("#glossBtn").setAttribute("aria-expanded",String(open))};
 $("#mathBtn").onclick=()=>setMath(!document.documentElement.classList.contains("math-on"));
-$("#dNext").onclick=()=>{$("#modal").hidden=true;const n=LEVELS.find(l=>l.id===G.level.id+1);if(n)loadLevel(n.id)};
+$("#dNext").onclick=()=>{$("#modal").hidden=true;const n=LEVELS[G.level.idx+1];if(n)loadLevel(n.id)};
 $("#dStay").onclick=()=>{$("#modal").hidden=true};
 $("#dLevels").onclick=()=>{$("#modal").hidden=true;show("home")};
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")$("#modal").hidden=true});
 $("#cmpClose").onclick=()=>{$("#cmpModal").hidden=true};$("#cmpModal").addEventListener("click",e=>{if(e.target.id==="cmpModal")$("#cmpModal").hidden=true});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("#modal").hidden=true;$("#cmpModal").hidden=true}});
 function bindReset(){$("#resetAll").onclick=()=>{$("#resetWrap").innerHTML='<span class="confirm">Erase all stars and XP? <button class="btn" id="resetYes">Erase</button> <button class="btn ghost" id="resetNo">Keep</button></span>';
-  $("#resetYes").onclick=()=>{progress={xp:0,done:{}};saveProgress();restoreReset();renderHome()};$("#resetNo").onclick=restoreReset}}
+  $("#resetYes").onclick=()=>{progress=freshProgress();saveProgress();restoreReset();renderHome()};$("#resetNo").onclick=restoreReset}}
 function restoreReset(){$("#resetWrap").innerHTML='<button class="btn ghost" id="resetAll">Reset progress</button>';bindReset()}
 bindReset();
 renderGloss($("#glossList"));

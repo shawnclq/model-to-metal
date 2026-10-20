@@ -451,8 +451,8 @@ textarea{width:100%;font-family:var(--mono);font-size:15px;line-height:1.5;backg
       <p class="lede">Learn the GenAI stack layer by layer, with a simulator that runs in your browser, from how a model is built down to a multi-node GPU cluster. Load real open models onto H100s and Blackwells, split them across GPUs and servers, start a Ray cluster, and fix what breaks: models that won't fit, slow tokens, idle GPUs, crashing prompts, mismatched drivers, slow networks.</p>
       <div class="cta">
         <button class="btn signal" id="startBtn">Start level 1</button>
-        <button class="btn" data-level="lab1">Open GPU lab</button>
-        <button class="btn" data-level="lab2">Open kernel lab</button>
+        <button class="btn" data-level="gpu-lab">Open GPU lab</button>
+        <button class="btn" data-level="kernel-lab">Open kernel lab</button>
       </div>
       <p class="sub">Each level sets up one problem. Change the hardware, precision or software with the buttons or the terminal, hit the objectives, then read how it connects to the rest of the stack. Fewer hints means more stars. Turn on <b>Show the math</b> any time for the formulas.</p>
     </div>
@@ -1009,7 +1009,7 @@ function headsCalc(design){const m=MODELS["llama-8b"],n=HEAD_DESIGNS[design].n,k
 const fits=S=>w1(S).fits;
 const hiQ=S=>S.dtype==="bf16"||S.dtype==="fp8";
 const LEVELS=[
- {id:1,world:1,title:"Meet the chip",concept:"SMs, Tensor Cores, HBM",layers:{on:[9],near:[]},
+ {id:"gpu-anatomy",world:1,title:"Meet the chip",concept:"SMs, Tensor Cores, HBM",layers:{on:[9],near:[]},
   panels:["chip"],controls:["gpu","model","dtype"],
   brief:`<p>A GPU is a package with two kinds of parts that matter for AI. In the middle is the <b>die</b>: silicon tiled with <b>Streaming Multiprocessors (SMs)</b>, each holding <b>Tensor Cores</b> that do matrix math. Around it sit stacks of <b>HBM</b>, the GPU's own memory, where the model lives.</p><p>The picture is a map of an H100 serving a small model. Tap a square in the die and a memory stack to see what they do. Run <code>nvidia-smi</code>, the first command every GPU operator types. Then compare with a Blackwell GPU.</p>`,
   setup(S){S.model="llama-8b";S.dtype="bf16";S.batch=1;S.ctx=4096},
@@ -1017,10 +1017,10 @@ const LEVELS=[
   hints:["Type nvidia-smi in the terminal and press Run.","Tap any small square inside the dark die, then any block beside it. Or type foundry inspect sm and foundry inspect hbm.","Pick B200 in the GPU buttons, or type foundry gpu b200."],
   answer:()=>"nvidia-smi && foundry inspect sm && foundry inspect hbm && foundry gpu b200",
   chips:["nvidia-smi","foundry inspect sm","foundry inspect hbm","foundry gpu b200","foundry status"],
-  debrief:`<p>You've met the three things every later level is about:</p><ul><li><b>Compute</b>: SMs and their Tensor Cores. H100 has 132 SMs. B200 has 148 across two dies joined by a fast link, and software still sees one GPU.</li><li><b>Memory capacity</b>: GB of HBM. Decides what fits.</li><li><b>Memory bandwidth</b>: TB/s between HBM and the SMs. Usually decides how fast tokens come out.</li></ul><p>Notice that <code>nvidia-smi</code> showed <b>GPU-Util 100%</b> while most SMs sat dark. GPU-Util only means "a kernel was running". Level 4 shows why that matters.</p>`,
+  debrief:`<p>You've met the three things every later level is about:</p><ul><li><b>Compute</b>: SMs and their Tensor Cores. H100 has 132 SMs. B200 has 148 across two dies joined by a fast link, and software still sees one GPU.</li><li><b>Memory capacity</b>: GB of HBM. Decides what fits.</li><li><b>Memory bandwidth</b>: TB/s between HBM and the SMs. Usually decides how fast tokens come out.</li></ul><p>Notice that <code>nvidia-smi</code> showed <b>GPU-Util 100%</b> while most SMs sat dark. GPU-Util only means "a kernel was running". {{lvl:memory-bandwidth}} shows why that matters.</p>`,
   links:{up:"Everything above, from the model to the app, ends up as work for these SMs and reads from this HBM.",down:"Below the chip: the server board, NVLink between GPUs, power and cooling (Worlds 3–4), and Kubernetes deciding who gets the GPU (World 5)."}},
 
- {id:2,world:1,title:"Will it fit?",concept:"Memory capacity & precision",layers:{on:[9],near:[6,7]},
+ {id:"memory-fit",world:1,title:"Will it fit?",concept:"Memory capacity & precision",layers:{on:[9],near:[6,7]},
   panels:["chip"],controls:["gpu","model","dtype"],locks:{gpu:"Your team only has H100s.",model:"The product team chose Llama 3.1 70B."},
   brief:`<p>The product team wants <b>Llama 3.1 70B</b>. Your team has <b>H100s with 80 GB</b> each. The first load just failed.</p><p>A model's size in memory is <b>parameters × bytes per parameter</b>. The bytes depend on <b>precision</b>: BF16 uses 2 bytes, FP8 1 byte, INT4 half a byte. Storing a model in fewer bytes is called <b>quantisation</b>. It's smaller and faster, with some risk to answer quality.</p><p>Get 70B onto one H100 while keeping quality as high as possible.</p><div class="mathbox">70.6 B params × 2 bytes (BF16) = 141.2 GB
 70.6 B params × 1 byte  (FP8)  =  70.6 GB
@@ -1033,7 +1033,7 @@ const LEVELS=[
   debrief:`<p>FP8 halves the weights to about 71 GB, which fits with a little room left for conversations. INT4 also fits, but with a bigger quality risk you'd need to test on your own tasks.</p><ul><li>BF16 needs ~141 GB. Even an H200 (141 GB) can't hold it plus a KV cache. A B200 can.</li><li>Hopper's Tensor Cores run FP8 math natively, and FP8 is usually very close to BF16 quality.</li><li>In real life: <code>vllm serve meta-llama/Llama-3.1-70B-Instruct --quantization fp8</code>.</li></ul>`,
   links:{up:"Model optimisation (layer 7) is where quantisation lives, and the model layer (6) decides parameter count. Both turn directly into GB on this chip.",down:"If no precision fits, you split the model across several GPUs connected by NVLink (World 3)."}},
 
- {id:3,world:1,title:"Room to talk",concept:"KV cache",layers:{on:[9],near:[5,6]},
+ {id:"kv-cache-memory",world:1,title:"Room to talk",concept:"KV cache",layers:{on:[9],near:[5,6]},
   panels:["chip"],controls:["gpu","model","dtype","batch","ctx"],locks:{model:"The product team chose Llama 3.1 70B.",batch:"Product target: 16 people at once.",ctx:"Product target: 8,192-token conversations."},
   brief:`<p>70B in FP8 fits on the H100. Now the product team wants <b>16 people chatting at once</b>, each with up to <b>8,192 tokens</b> of conversation.</p><p>For every token in every conversation, the model keeps a small memo of what it has already read, the <b>KV cache</b>. It lives in HBM next to the weights (yellow in the memory bar) and grows with users × conversation length.</p><p>Find the <b>cheapest GPU</b> that fits this at FP8 quality or better. Hourly rates are on the GPU buttons.</p><div class="mathbox">KV per token = 2 (keys, values) × 80 layers × 8 KV heads
                × 128 dims × 2 bytes = 0.33 MB
@@ -1045,7 +1045,7 @@ KV cache     = 16 users × 8,192 tokens × 0.33 MB = 42.9 GB</div>`,
   debrief:`<p>The KV cache was 43 GB. The H200's extra 61 GB exists for exactly this: the same compute as an H100, with room for many more conversations.</p><ul><li>Llama 70B needs ~0.33 MB of KV cache per token. One 128k-token conversation alone needs ~43 GB.</li><li>Memory, more than compute, usually caps how many users one GPU can serve.</li><li>Inference engines like vLLM store the cache in small pages (PagedAttention) so less of it is wasted.</li></ul>`,
   links:{up:"The serving layer (5) decides how many conversations share a GPU and manages this cache. Product choices like maximum context length land here as GB.",down:"When the cache outgrows one GPU, it's split across GPUs, which becomes NVLink traffic (World 3)."}},
 
- {id:4,world:1,title:"Fast chip, slow tokens",concept:"Memory bandwidth",layers:{on:[9],near:[5]},
+ {id:"memory-bandwidth",world:1,title:"Fast chip, slow tokens",concept:"Memory bandwidth",layers:{on:[9],near:[5]},
   panels:["chip","roof"],controls:["gpu","model","dtype"],locks:{model:"The product team chose Llama 3.1 70B."},
   brief:`<p>Users say the 70B assistant types slowly: about <b>37 tokens per second</b>. They want at least <b>50</b>. The H100 can do almost 2,000 trillion FP8 operations per second, so why is it slow?</p><p>Watch the two meters. To produce <b>one token</b>, the GPU must read <b>every weight</b> from HBM. With one user, it does very little math for each byte it reads, so the Tensor Cores mostly wait for memory.</p><p>Reach 50 tokens/s per user without going below FP8. Then open the <b>Roofline</b>, the chart engineers use to explain this.</p><div class="mathbox">time per token ≈ bytes read ÷ bandwidth
                = 71.9 GB ÷ (3.35 TB/s × 80%) = 26.8 ms
@@ -1057,7 +1057,7 @@ tokens/s       = 1 ÷ 26.8 ms ≈ 37</div>`,
   debrief:`<p>The H200 has <b>identical compute</b> to the H100 but 43% more bandwidth, and it produced tokens 43% faster. Generating tokens one at a time is <b>memory-bound</b>.</p><ul><li>Tokens/s per user ≈ bandwidth ÷ bytes read per token. That's why each new HBM generation matters so much for inference.</li><li>On the roofline your workload sits far left, on the sloped memory roof. The flat compute roof is out of reach with one user.</li><li><code>nvidia-smi</code> said GPU-Util 100% while the Tensor Cores were under 1% busy. Tools like NVIDIA DCGM report Tensor Core activity instead (World 5).</li></ul>`,
   links:{up:"Latency targets in the application (1) and model routing in the gateway (3) depend on this number. A 'fast' tier is often a high-bandwidth GPU or a smaller model.",down:"Quantisation (layer 7) helps here too: fewer bytes per weight means fewer bytes to read per token."}},
 
- {id:5,world:1,title:"Fill the factory",concept:"Batching & cost per token",layers:{on:[9],near:[5]},
+ {id:"batching",world:1,title:"Fill the factory",concept:"Batching & cost per token",layers:{on:[9],near:[5]},
   panels:["chip","roof"],controls:["gpu","model","dtype","batch","ctx"],locks:{gpu:"Finance approved H200s.",model:"The product team chose Llama 3.1 70B.",dtype:"Quality review signed off on FP8.",ctx:"Product target: 2,048-token conversations."},
   brief:`<p>The 70B assistant on an H200 is quick for one user, but finance noticed the bill: you pay for the GPU by the hour whether it serves one person or fifty.</p><p>Every step reads all the weights anyway, so serving <b>more users in the same step</b> adds very little memory traffic. That's <b>batching</b>.</p><p>Get the cost below <b>$1.00 per million tokens</b> while each user still sees at least <b>25 tokens/s</b>. Watch what stops you going further.</p><div class="mathbox">cost per 1M tokens = $ per hour ÷ (tokens/s × 3,600) × 1,000,000
 1 user:  $3.50 ÷ (53 tok/s × 3,600) × 1M ≈ $18</div>`,
@@ -1068,9 +1068,9 @@ tokens/s       = 1 ÷ 26.8 ms ≈ 37</div>`,
   debrief:`<p>One read of the weights now serves many users, so total throughput rose almost in step with batch size while each user slowed only a little. Cost per token fell by more than 20×.</p><ul><li>The ceiling was <b>KV cache memory</b>, not compute. Around 100 users at 2k context, the H200 runs out.</li><li>On the roofline the point moved right: more math for every byte read.</li><li>Real engines do this all the time (<b>continuous batching</b>): new requests join the running batch every step. That's the inference layer's main job.</li></ul>`,
   links:{up:"This is the economics behind 'maximise useful AI work per unit of compute'. The serving and gateway layers exist largely to keep batches full.",down:"Push batches large enough and you finally hit the compute roof. Then Tensor Core speed, FP8 and FP4 start to matter."}},
 
- {id:6,world:1,title:"Two speeds",concept:"Prefill vs decode",layers:{on:[9],near:[5,4]},
+ {id:"prefill-decode",world:1,title:"Two speeds",concept:"Prefill vs decode",layers:{on:[9],near:[5,4]},
   panels:["chip","roof"],controls:["gpu","model","dtype","prompt","ctx"],locks:{model:"The product team chose Llama 3.1 70B.",prompt:"Contracts are ~16k tokens.",ctx:"Sized for the 16k-token contract."},
-  brief:`<p>A legal team pastes a <b>16,000-token contract</b> and asks a question. The answer streams fine, but the first word takes <b>2.5 seconds</b> to appear. They want <b>time to first token at most 1.5 s</b>.</p><p>Inference has two phases. <b>Prefill</b> reads the whole prompt in one pass: thousands of tokens share each weight read, so it's limited by <b>compute</b>. <b>Decode</b> then produces one token at a time, limited by <b>memory bandwidth</b>.</p><p>Try the H200 trick from level 4 first and see what happens.</p><div class="mathbox">prefill math ≈ 2 × params × prompt tokens  (+ attention)
+  brief:`<p>A legal team pastes a <b>16,000-token contract</b> and asks a question. The answer streams fine, but the first word takes <b>2.5 seconds</b> to appear. They want <b>time to first token at most 1.5 s</b>.</p><p>Inference has two phases. <b>Prefill</b> reads the whole prompt in one pass: thousands of tokens share each weight read, so it's limited by <b>compute</b>. <b>Decode</b> then produces one token at a time, limited by <b>memory bandwidth</b>.</p><p>Try the H200 trick from {{lvl:memory-bandwidth}} first and see what happens.</p><div class="mathbox">prefill math ≈ 2 × params × prompt tokens  (+ attention)
              = 2 × 70.6 B × 16,384 = 2.3 PFLOP
 time         ≈ 2.3 PFLOP ÷ (1,979 TFLOPS × 65%) ≈ 1.8 s  (+0.7 s attention)</div>`,
   setup(S){S.gpu="h100";S.model="llama-70b";S.dtype="fp8";S.batch=1;S.ctx=16384;S.prompt=16384},
@@ -1080,29 +1080,29 @@ time         ≈ 2.3 PFLOP ÷ (1,979 TFLOPS × 65%) ≈ 1.8 s  (+0.7 s attention
   debrief:`<p>The H200 didn't help: it has the same Tensor Cores as the H100. Blackwell roughly doubles FP8 math and adds FP4, so prefill got about twice as fast.</p><ul><li>Prefill is compute-bound: TFLOPS matter. Decode is memory-bound: TB/s matter. Different GPUs win different phases.</li><li>INT4 on Hopper made prefill slower. The weights are stored in 4 bits, but the math still runs in 16-bit.</li><li>Large deployments now run the two phases on separate GPU pools (<b>disaggregated serving</b>).</li></ul>`,
   links:{up:"TTFT is the first thing users feel. RAG apps (layer 4) that stuff long retrieved context into prompts are prefill-heavy.",down:"Long prompts also stress the attention kernels. World 2 shows how FlashAttention keeps them from blowing up memory."}},
 
- {id:7,world:1,title:"Checkpoint: one GPU",concept:"World 1 quiz",quiz:true,layers:{on:[9],near:[5,6,7]},
+ {id:"quiz-one-gpu",world:1,title:"Checkpoint: one GPU",concept:"World 1 quiz",quiz:true,layers:{on:[9],near:[5,6,7]},
   questions:[
    {q:"An H200 generates tokens faster than an H100 for a single user, even though their compute is identical. Why?",o:["It has more SMs","It has higher memory bandwidth","It uses a newer CUDA version","It runs at a higher clock speed"],a:1,why:"Each token requires reading every weight from HBM. H200's HBM3e moves 4.8 TB/s against H100's 3.35 TB/s, and decode speed follows bandwidth."},
    {q:"Roughly how much memory do the weights of a 70B-parameter model need in FP8?",o:["35 GB","70 GB","140 GB","280 GB"],a:1,why:"FP8 uses one byte per parameter: 70 billion × 1 byte ≈ 70 GB. BF16 doubles it, INT4 halves it."},
    {q:"Serving more users with longer conversations mostly consumes…",o:["Tensor Core time","KV cache memory in HBM","NVLink bandwidth","CPU memory"],a:1,why:"Every token of every conversation keeps keys and values in HBM. It grows with users × context, and is usually what caps users per GPU."},
    {q:"Raising the batch from 1 to 32 users on the same GPU mostly…",o:["Makes each user 32× slower","Raises total throughput and cuts cost per token, with a small slowdown per user","Changes nothing, because the GPU was already at 100%","Makes prompts process faster"],a:1,why:"One read of the weights now serves 32 users. Throughput rises almost 32×, the per-user slowdown is small, and cost per token falls."},
-   {q:"Time to first token for a long prompt is limited mainly by…",o:["Memory bandwidth","Compute (Tensor Core TFLOPS)","Disk speed","Network latency"],a:1,why:"Prefill processes thousands of tokens per weight read, so it does lots of math per byte: compute-bound. That's why the H200 didn't help in level 6."},
+   {q:"Time to first token for a long prompt is limited mainly by…",o:["Memory bandwidth","Compute (Tensor Core TFLOPS)","Disk speed","Network latency"],a:1,why:"Prefill processes thousands of tokens per weight read, so it does lots of math per byte: compute-bound. That's why the H200 didn't help in {{lvl:prefill-decode}}."},
    {q:"nvidia-smi shows GPU-Util 100%. What does that tell you?",o:["The Tensor Cores are fully used","A kernel was running throughout the sample period, not how much of the chip it used","The GPU is overheating","GPU memory is full"],a:1,why:"GPU-Util only measures time with any kernel running. A memory-bound decode loop shows 100% with Tensor Cores under 1% busy."}
   ],
   debrief:`<p>That's one GPU, end to end: what fits (capacity), how fast tokens come (bandwidth), how fast prompts are read (compute), and how batching turns all three into cost per token.</p>`,
   links:{up:"The serving layer (5) builds on all four ideas: it batches, manages KV cache, and splits prefill from decode.",down:"World 2 goes one layer down in software: how a line of PyTorch becomes kernels on these SMs."}},
 
- {id:8,world:2,title:"Follow one matmul",concept:"The software path",layers:{on:[8],near:[6,9]},
+ {id:"software-path",world:2,title:"Follow one matmul",concept:"The software path",layers:{on:[8],near:[6,9]},
   panels:["stack"],controls:[],
   brief:`<p>Model code says something simple: <code>y = x @ W</code>. The GPU only understands <b>kernels</b>, small programs launched across its SMs. Several layers of software turn one into the other.</p><p>Run <code>foundry trace matmul</code> to follow one matrix multiply from Python down to the Tensor Cores. Then open the <b>kernel libraries</b> and <b>NVIDIA driver</b> rows to see who owns what.</p>`,
   setup(S){S.model="llama-8b"},
   goals:[{t:"Trace a matmul (foundry trace matmul)",ok:S=>!!S.flags.trace},{t:"Inspect the kernel libraries layer",ok:S=>S.inspected.includes("lib")},{t:"Inspect the NVIDIA driver layer",ok:S=>S.inspected.includes("driver")}],
   hints:["Type foundry trace matmul.","Tap the 'Kernel libraries' and 'NVIDIA driver' rows, or type foundry inspect libraries."],
   answer:()=>"foundry trace matmul && foundry inspect libraries && foundry inspect driver",chips:["foundry trace matmul","foundry inspect libraries","foundry inspect driver","nvidia-smi"],
-  debrief:`<p>One line of Python went through five layers of software before it touched silicon:</p><ul><li><b>PyTorch</b> decides <i>what</i> to compute and routes it to the CUDA backend.</li><li><b>Kernel libraries</b> (cuBLAS, CUTLASS, FlashAttention, Triton-generated code) hold the hand-tuned kernels. Most of the performance lives here.</li><li>The <b>CUDA runtime</b> ships inside your container. The <b>driver</b> lives on the host. That split causes the classic failure in level 11.</li></ul>`,
+  debrief:`<p>One line of Python went through five layers of software before it touched silicon:</p><ul><li><b>PyTorch</b> decides <i>what</i> to compute and routes it to the CUDA backend.</li><li><b>Kernel libraries</b> (cuBLAS, CUTLASS, FlashAttention, Triton-generated code) hold the hand-tuned kernels. Most of the performance lives here.</li><li>The <b>CUDA runtime</b> ships inside your container. The <b>driver</b> lives on the host. That split causes the classic failure in {{lvl:driver-stack}}.</li></ul>`,
   links:{up:"Inference engines (vLLM, SGLang, TensorRT-LLM) sit on top of this path. They differ mostly in which kernels they use and how they schedule them.",down:"At the bottom, each kernel becomes thread blocks on SMs reading HBM: World 1's chip."}},
 
- {id:9,world:2,title:"Waiting on the CPU",concept:"Launch overhead & CUDA Graphs",layers:{on:[8],near:[5,7]},
+ {id:"launch-overhead",world:2,title:"Waiting on the CPU",concept:"Launch overhead & CUDA Graphs",layers:{on:[8],near:[5,7]},
   panels:["timeline"],controls:["model2","graphs","fuse"],
   brief:`<p>A small model, <b>Llama 3.2 1B</b>, runs on an H100 for one user. It should be blazing fast, but the GPU sits idle most of the time.</p><p>The CPU <b>launches every kernel</b>. In plain PyTorch each launch costs about 18 µs of Python and driver work, but many of this model's kernels finish in under 5 µs. The GPU finishes, then waits for the next launch. See the hatched gaps on the timeline.</p><p>Look at Llama 3.1 8B once to compare. Then, on the 1B model, get the GPU <b>at least 85% busy</b> and a token every <b>1.8 ms or less</b>.</p>`,
   setup(S){S.model="llama-1b";S.mode="decode";S.ctx=2048},
@@ -1112,7 +1112,7 @@ time         ≈ 2.3 PFLOP ÷ (1,979 TFLOPS × 65%) ≈ 1.8 s  (+0.7 s attention
   debrief:`<p><b>CUDA Graphs</b> record the whole sequence of kernels once, then replay it with one launch. The CPU stops being the bottleneck and the gaps disappear.</p><ul><li>Launch overhead matters most for small models and small batches, where kernels are tiny. The 8B model's bigger kernels hid much of it.</li><li>Kernel fusion helped a little on its own: fewer, bigger kernels means fewer launches.</li><li>In practice vLLM captures CUDA Graphs for decode by default, and <code>torch.compile(mode="reduce-overhead")</code> uses them too.</li></ul>`,
   links:{up:"Model benchmarks hide this, but users feel it as latency. Inference engines handle it so application teams don't have to.",down:"This is one case where nvidia-smi's GPU-Util is honest: it shows the gaps as a low number."}},
 
- {id:10,world:2,title:"The 32k prompt",concept:"Fusion & FlashAttention",layers:{on:[8],near:[7,9]},
+ {id:"kernel-fusion",world:2,title:"The 32k prompt",concept:"Fusion & FlashAttention",layers:{on:[8],near:[7,9]},
   panels:["memory","timeline"],controls:["fuse","flash","graphs"],locks:{model:"The document reader runs Llama 3.1 8B."},
   brief:`<p>Llama 3.1 8B on an H100 is asked to read a <b>32,768-token</b> document. It crashes out of memory, even though the model is only 16 GB.</p><p>Plain attention compares every token with every other token and <b>writes the whole score matrix to HBM</b>. <b>FlashAttention</b> is a fused kernel that works through the matrix in small tiles held in each SM's on-chip memory, so the full matrix never exists.</p><p>Make the prompt run with time to first token at most <b>2 s</b>, then profile it to see where the time goes.</p><div class="mathbox">score matrix, one layer = 32 heads × 32,768 × 32,768 × 2 bytes
                         = 68.7 GB (64 GiB)
@@ -1124,7 +1124,7 @@ free HBM                = 80 − 16.1 (weights) − 4.3 (KV) − 3 = 56.6 GB</di
   debrief:`<p>FlashAttention turned an impossible 64 GiB allocation into nothing by keeping the work on-chip.</p><ul><li>This is <b>kernel fusion</b> at its most dramatic: several steps combined so intermediate results stay in fast on-chip memory instead of round-tripping through HBM.</li><li>Fusing the small ops (norms, activations) saved only tens of milliseconds here. Fusion pays off when the fused ops are memory-bound and numerous.</li><li>CUDA Graphs changed nothing: each kernel here runs for milliseconds, so launch cost is irrelevant.</li></ul>`,
   links:{up:"Long-context RAG and document Q&A (layers 1 and 4) are affordable because of kernels like this.",down:"The win comes from World 1's memory hierarchy: a little very fast SRAM on each SM, a lot of slower HBM beside the die."}},
 
- {id:11,world:2,title:"Driver says no",concept:"Driver, CUDA & containers",layers:{on:[8],near:[10]},
+ {id:"driver-stack",world:2,title:"Driver says no",driverStart:true,concept:"Driver, CUDA & containers",layers:{on:[8],near:[10]},
   panels:["container"],controls:[],
   brief:`<p>A teammate shipped a new serving image built on <b>CUDA 13.0</b>. On your GPU server it starts, then PyTorch reports the driver is too old.</p><p>Two pieces must agree. The <b>NVIDIA driver</b> is installed on the <b>host</b>. The <b>CUDA runtime</b> and libraries ship <b>inside the container image</b>. The <b>NVIDIA Container Toolkit</b> connects them when you start a container with <code>--gpus all</code>. Each driver supports CUDA up to a certain version, and <code>nvidia-smi</code> shows which.</p><p>Get a container running that can use the GPU. There's more than one fix.</p>`,
   setup(S){S.driver=535;S.lastRun={image:"llm:cuda13.0",gpus:true,ok:false,why:"driver"}},
@@ -1134,7 +1134,7 @@ free HBM                = 80 − 16.1 (weights) − 4.3 (KV) − 3 = 56.6 GB</di
   debrief:`<p>Either fix works, with different costs:</p><ul><li><b>Use an older image</b> (CUDA 12.4): no host change. It works because a driver supports newer minor versions within the same major release (a 12.2 driver runs a 12.4 runtime).</li><li><b>Upgrade the host driver</b> to 580: unlocks CUDA 13 for everyone, but means stopping workloads and rebooting the machine. On a cluster that's a rolling operation, which the NVIDIA GPU Operator automates (World 5).</li><li>Without <code>--gpus all</code> the container can't see the GPU at all, whatever the versions.</li></ul>`,
   links:{up:"Every image your platform offers (PyTorch, vLLM, NIM) bakes in a CUDA version. Platform teams publish a driver/CUDA support matrix for this reason.",down:"The driver is the last piece of software: it hands work to the GPU hardware itself."}},
 
- {id:12,world:2,title:"Checkpoint: the software path",concept:"World 2 quiz",quiz:true,layers:{on:[8],near:[7,10]},
+ {id:"quiz-software-path",world:2,title:"Checkpoint: the software path",concept:"World 2 quiz",quiz:true,layers:{on:[8],near:[7,10]},
   questions:[
    {q:"You call x @ W in PyTorch on a GPU. What usually provides the actual matrix-multiply kernel?",o:["The Python interpreter","cuBLAS / CUTLASS-based kernel libraries","The NVIDIA driver","NCCL"],a:1,why:"PyTorch routes the call to the CUDA backend, which calls cuBLAS (often CUTLASS-derived kernels) to pick a tuned GEMM. The driver only launches it."},
    {q:"CUDA Graphs help most when…",o:["Kernels are tiny and the CPU can't launch them fast enough","The model doesn't fit in memory","Prompts are very long","Training across many nodes"],a:0,why:"Graphs replace hundreds of separate launches with one replay. That matters when each kernel finishes faster than the CPU can launch the next."},
@@ -1146,11 +1146,13 @@ free HBM                = 80 − 16.1 (weights) − 4.3 (KV) − 3 = 56.6 GB</di
   debrief:`<p>You've followed the path from Python to silicon and seen the three classic software wins: tuned libraries, fewer launches (CUDA Graphs), and fewer HBM round trips (fusion, FlashAttention). Plus the classic failure: a driver that's older than the container expects.</p>`,
   links:{up:"Next up the stack: inference engines package all of this so app teams just call an API.",down:"Next across the stack: World 3 connects eight of these GPUs with NVLink."}}
 ];
+/* Find a level by its permanent ID while the list is being assembled. Throws on a typo so a bad ID fails at load, not silently. */
+function findLevel(id){const l=LEVELS.find(x=>x.id===id);if(!l)throw new Error("Unknown level ID: "+id);return l}
 const LABS={
- lab1:{id:"lab1",world:1,title:"GPU lab",concept:"Free play",lab:true,layers:{on:[9],near:[5,6,7]},panels:["chip","roof"],controls:["gpu","model","dtype","batch","ctx","prompt"],
+ 1:{id:"gpu-lab",world:1,title:"GPU lab",concept:"Free play",lab:true,layers:{on:[9],near:[5,6,7]},panels:["chip","roof"],controls:["gpu","model","dtype","batch","ctx","prompt"],
   brief:`<p>Every knob unlocked. Try a 405B model on a B300, push batches until the roofline flattens, or compare FP4 on Blackwell with INT4 on Hopper.</p><p>Things to try:</p><ul><li>Find the batch size where an H100 becomes compute-bound.</li><li>How many 128k-token conversations fit on a B300?</li><li>Which GPU gives the lowest cost per token for 70B?</li></ul>`,
   setup(S){S.gpu="h200";S.model="llama-70b";S.dtype="fp8";S.batch=16;S.ctx=4096},goals:[],hints:[],chips:["foundry status","foundry bench","foundry roofline","nvidia-smi","foundry load llama-405b","foundry gpu b300"]},
- lab2:{id:"lab2",world:2,title:"Kernel lab",concept:"Free play",lab:true,layers:{on:[8],near:[7,9]},panels:["stack","memory","timeline"],controls:["model2","mode","prompt2","graphs","fuse","flash"],
+ 2:{id:"kernel-lab",world:2,title:"Kernel lab",concept:"Free play",lab:true,layers:{on:[8],near:[7,9]},panels:["stack","memory","timeline"],controls:["model2","mode","prompt2","graphs","fuse","flash"],
   brief:`<p>Every software toggle unlocked on an H100. Switch between decode (one token at a time) and prefill (reading a whole prompt), and see which optimisations matter where.</p><p>Things to try:</p><ul><li>Does CUDA Graphs help prefill?</li><li>At what prompt length does plain attention stop fitting?</li><li>How much does fusion save on the 1B model versus the 8B?</li></ul>`,
   setup(S){S.model="llama-1b";S.mode="decode"},goals:[],hints:[],chips:["foundry profile","foundry trace matmul","foundry mode prefill","foundry graphs on","nvidia-smi"]}
 };
@@ -1166,7 +1168,7 @@ const SOON=[
 "use strict";
 /* ---------- new World 1 levels (inserted before the World 1 quiz) ---------- */
 const NEW_W1=[
- {world:1,title:"Long memories",concept:"KV-cache quantisation",layers:{on:[9],near:[5,7]},
+ {id:"kv-quantisation",world:1,title:"Long memories",concept:"KV-cache quantisation",layers:{on:[9],near:[5,7]},
   panels:["chip"],controls:["gpu","model","dtype","kv","batch","ctx"],locks:{gpu:"The H200s are already racked.",model:"The product team chose Llama 3.1 70B.",batch:"Product target: 8 people at once.",ctx:"Product target: 32k-token research sessions."},
   brief:`<p>A research tool lets <b>8 analysts</b> each keep a <b>32,768-token</b> conversation going. On the H200 the KV cache alone needs 86 GB, so it doesn't fit next to the weights.</p><p>Weights aren't the only thing you can store in fewer bits. The <b>KV cache</b> can be kept in <b>FP8</b> instead of 16-bit, halving it. Accuracy usually holds up well, but it's a real trade-off worth testing on long documents.</p><p>Make it fit without dropping the weights below FP8.</p><div class="mathbox">KV cache = 8 users × 32,768 tokens × 0.33 MB = 85.9 GB  (16-bit)
          = 8 users × 32,768 tokens × 0.16 MB = 42.9 GB  (FP8)</div>`,
@@ -1175,11 +1177,11 @@ const NEW_W1=[
   hints:["The yellow KV cache is bigger than the blue weights. Which of the two can you shrink without touching weight precision?","Use the KV cache buttons, or foundry kv fp8."],
   answer:()=>"foundry kv fp8",chips:["foundry status","foundry kv fp8","foundry dtype int4"],
   debrief:`<p>FP8 KV cache halved the conversation memory, from 86 GB to 43 GB, so everything fits with room to spare. It also made each token a little faster: less KV to read per step.</p><ul><li>At long context the KV cache, not the weights, is the memory hog. Quantising it is now standard in vLLM and TensorRT-LLM (<code>--kv-cache-dtype fp8</code>).</li><li>Other tricks attack the same problem: grouped-query attention (fewer KV heads, already in Llama 3), sliding windows, and offloading old KV to CPU memory or SSD.</li><li>Quality risk is real but usually small; long-document benchmarks are where to check.</li></ul>`,
-  links:{up:"Context length is a product decision (layer 1) that the serving layer (5) pays for in GB. KV quantisation is an optimisation (7) that changes the price.",down:"Less KV to read also means less memory bandwidth per token, which you met in level 4."}},
+  links:{up:"Context length is a product decision (layer 1) that the serving layer (5) pays for in GB. KV quantisation is an optimisation (7) that changes the price.",down:"Less KV to read also means less memory bandwidth per token, which you met in {{lvl:memory-bandwidth}}."}},
 
- {world:1,title:"Many experts",concept:"Mixture of experts (MoE)",layers:{on:[9],near:[6]},
+ {id:"moe-on-gpu",world:1,title:"Many experts",concept:"Mixture of experts (MoE)",layers:{on:[9],near:[6]},
   panels:["chip"],controls:["gpu","model","dtype","batch"],locks:{ctx:"Fixed at 4k for this test."},
-  brief:`<p>Leadership wants a <b>frontier-scale model (200B+ parameters) on a single GPU</b>, answering at <b>60+ tokens/s</b> per user, at FP8 quality.</p><p>Llama 3.1 405B is <b>dense</b>: every token uses every weight. <b>Qwen3 235B-A22B</b> is a <b>mixture of experts</b>: each layer has 128 small "expert" networks and a router that sends each token to just 8 of them. All 235B parameters must sit in memory, but each token only reads and computes about <b>22B</b>.</p><p>Find a GPU and model that hit the target. Then try <b>32 users</b> and see what happens to MoE's speed advantage.</p><div class="mathbox">dense 405B, FP8: read 406 GB per token
+  brief:`<p>Leadership wants a <b>frontier-scale model (200B+ parameters) on a single GPU</b>, answering at <b>60+ tokens/s</b> per user, at FP8 quality.</p><p>Llama 3.1 405B is <b>dense</b>: every token uses every weight. <b>Qwen3 235B-A22B</b> is a <b>mixture of experts</b>: each layer has 128 small "expert" networks and a router that sends each token to just 8 of them. All 235B parameters must sit in memory, but each token only reads and computes about <b>22B</b>.</p><p>({{lvl:moe-experts}} shows how the router picks experts.) Find a GPU and model that hit the target. Then try <b>32 users</b> and see what happens to MoE's speed advantage.</p><div class="mathbox">dense 405B, FP8: read 406 GB per token
 MoE 235B-A22B:   read ~22 GB per token (8 of 128 experts)
 32 users:        1 − (120/128)³² = 87% of experts get used every step</div>`,
   setup(S){S.gpu="h200";S.model="llama-405b";S.dtype="fp8";S.batch=1;S.ctx=4096},
@@ -1189,7 +1191,7 @@ MoE 235B-A22B:   read ~22 GB per token (8 of 128 experts)
   debrief:`<p>Memory sized like a 235B model, speed like a 22B one. That's why most frontier models (DeepSeek, Qwen, Llama 4, gpt-oss) are now MoE.</p><ul><li>The catch: with many users, different tokens pick different experts, so each step touches nearly all of them. At 32 users the GPU read ~200 GB per step and the speed advantage mostly vanished.</li><li>Big MoE deployments spread experts across many GPUs (<b>expert parallelism</b>), which needs fast GPU-to-GPU links: World 3.</li><li>Capacity planning changes: size memory for total parameters, size compute for active ones.</li></ul>`,
   links:{up:"Model choice (layer 6) now drives hardware choice: MoE favours lots of memory per GPU, or many GPUs with fast interconnect.",down:"Experts living on different GPUs means tokens hop between GPUs every layer: all-to-all traffic over NVLink."}},
 
- {world:1,title:"Watts per token",concept:"Performance per watt",layers:{on:[9],near:[10]},
+ {id:"perf-per-watt",world:1,title:"Watts per token",concept:"Performance per watt",layers:{on:[9],near:[10]},
   panels:["chip"],controls:["gpu","model","dtype","batch","ctx"],locks:{model:"The product team chose Llama 3.1 70B.",batch:"Steady load: 64 users per GPU.",ctx:"2,048-token conversations."},
   brief:`<p>Your data centre has a fixed power budget, and its racks are <b>air-cooled</b>: no GPU rated above <b>1,000 W</b>. Finance now tracks <b>tokens per kilowatt-hour</b>, because electricity and cooling capacity, not GPU count, are what run out first.</p><p>Each GPU's power draw depends on how hard it works (see the Power tile). Find the GPU that delivers at least <b>22 million tokens per kWh</b> within the air-cooling limit, at FP8 quality or better.</p><div class="mathbox">tokens per kWh = tokens/s × 3,600 ÷ (watts ÷ 1,000)
 power estimate  ≈ rated power × (14% idle + share of bandwidth and math in use)</div>`,
@@ -1200,7 +1202,7 @@ power estimate  ≈ rated power × (14% idle + share of bandwidth and math in us
   debrief:`<p>The B200 produced ~20% more tokens per kWh than the H200 within the air-cooling limit. Each generation does more work per watt, and that, more than raw speed, is what lets a data centre grow inside its power budget.</p><ul><li>The B300 was <i>worse</i> per watt here: same memory bandwidth as the B200 but a higher power rating, on a workload limited by bandwidth. Its extra memory and FP4 math only pay off on workloads that use them.</li><li>FP4 on the B200 would reach ~36M tokens per kWh: quantisation is an energy lever too.</li><li>Above ~1,000 W per GPU, racks move to direct liquid cooling (B300, GB200 NVL72). That's a facilities decision, made years ahead.</li><li>Power figures here are rough estimates; measure real ones with DCGM.</li></ul>`,
   links:{up:"Cost per task in the application layer is increasingly an energy number.",down:"Infrastructure (layer 10) includes power distribution and cooling, often the slowest part of the stack to change."}},
 
- {world:1,title:"Share the GPU",concept:"MIG & time-slicing",layers:{on:[9],near:[10]},
+ {id:"gpu-sharing",world:1,title:"Share the GPU",concept:"MIG & time-slicing",layers:{on:[9],near:[10]},
   panels:["mig"],controls:["mig"],
   brief:`<p>Five teams each need a small model, and you have <b>one H100</b>. Giving each team a whole GPU would waste most of it.</p><p>Two ways to share. <b>Time-slicing</b> lets everyone take turns on the whole GPU: easy, but one team can fill the memory or hog the SMs and hurt the others. <b>MIG (Multi-Instance GPU)</b> cuts the H100 into up to <b>7 isolated GPUs</b>, each with its own SMs, memory and bandwidth.</p><p>An H100 has <b>7 compute slices</b> and <b>8 memory slices</b> of 10 GB. Profiles are named by both, such as <code>1g.10gb</code> or <code>2g.20gb</code>. Turn on MIG mode, then pick a layout where every team gets its own instance that fits.</p>`,
   setup(S){S.gpu="h100";S.mig={mode:false,inst:[],share:"none"}},
@@ -1217,17 +1219,17 @@ const W1Q_MORE=[
 ];
 /* ---------- World 3: one 8-GPU server ---------- */
 const W3L=[
- {world:3,title:"Meet the HGX board",concept:"NVLink, NVSwitch & NCCL",layers:{on:[9],near:[8]},
+ {id:"hgx-board",world:3,title:"Meet the HGX board",concept:"NVLink, NVSwitch & NCCL",layers:{on:[9],near:[8]},
   panels:["board"],controls:["srv","model","dtype","tp"],
   brief:`<p>A typical AI server is an <b>HGX board</b>: 8 GPUs, each wired by 18 <b>NVLink</b> links to 4 <b>NVSwitch</b> chips. Any GPU can reach any other at 900 GB/s, about 14× faster than PCIe.</p><p>Right now the server runs <b>8 separate copies</b> of 70B, one per GPU (8 replicas, tensor-parallel size 1), so the GPUs never talk to each other.</p><p>Look at how the GPUs are connected with <code>nvidia-smi topo -m</code>. Tap an NVSwitch. Then measure GPU-to-GPU speed with NCCL's own benchmark, <code>all_reduce_perf</code>.</p>`,
   setup(S){S.srv="hgx";S.model="llama-70b";S.dtype="fp8";S.tp=1;S.batch=4},
   goals:[{t:"Show the GPU topology (nvidia-smi topo -m)",ok:S=>!!S.flags.topo},{t:"Inspect an NVSwitch chip",ok:S=>S.inspected.includes("nvswitch")},{t:"Run the NCCL all-reduce benchmark",ok:S=>!!S.flags.nccl}],
   hints:["Type nvidia-smi topo -m. NV18 means 18 NVLinks between that pair of GPUs.","Tap one of the small chips in the middle of the board. Then type all_reduce_perf -b 8 -e 8G -g 8."],
   answer:()=>"nvidia-smi topo -m && foundry inspect nvswitch && all_reduce_perf -b 8 -e 8G -f 16 -g 8",chips:["nvidia-smi topo -m","all_reduce_perf -b 8 -e 8G -f 16 -g 8","foundry inspect nvswitch","nvidia-smi"],
-  debrief:`<p>You've seen the two speeds inside a server: tiny messages are limited by <b>latency</b> (microseconds per hop), big ones by <b>bandwidth</b> (the busbw column approaching ~450 GB/s each way).</p><ul><li><b>NCCL</b> is the library every framework uses for GPU-to-GPU communication. <code>all_reduce_perf</code> from nccl-tests is the standard health check for a new server or cluster.</li><li><b>All-reduce</b>: every GPU contributes a tensor and every GPU ends up with the sum. Tensor parallelism does one after every layer.</li><li>"NV18" in the topology means every pair of GPUs has a full NVLink path. On a PCIe server you'd see PIX, NODE or SYS instead: slower paths through switches and CPUs.</li></ul>`,
+  debrief:`<p>You've seen the two speeds inside a server: tiny messages are limited by <b>latency</b> (microseconds per hop), big ones by <b>bandwidth</b> (the busbw column approaching ~450 GB/s each way).</p><ul><li><b>NCCL</b> is the library every framework uses for GPU-to-GPU communication. <code>all_reduce_perf</code> from nccl-tests is the standard health check for a new server or cluster.</li><li><b>All-reduce</b>: every GPU contributes a tensor and every GPU ends up with the sum. Tensor parallelism does one after every layer.</li><li>"NV18" in the topology means every pair of GPUs has a full NVLink path. On a PCIe server you'd see PIX, NODE or SYS instead: slower paths through switches and CPUs.</li><li>Other boards differ mainly in this fabric. HGX B200 doubles NVLink to 1.8 TB/s per GPU. AMD's 8 × MI300X board wires GPUs in a direct mesh with no switch. NVIDIA's GB200 NVL72 stretches one NVLink domain across 72 GPUs in a rack. Try them in the Server lab.</li></ul>`,
   links:{up:"Inference engines use NCCL under the hood whenever a model spans GPUs; you rarely call it directly.",down:"NVLink is the scale-up network. Between servers you need a scale-out network: World 4."}},
 
- {world:3,title:"Too big for one",concept:"Tensor parallelism",layers:{on:[9],near:[5,8]},
+ {id:"tensor-parallel",world:3,title:"Too big for one",concept:"Tensor parallelism",layers:{on:[9],near:[5,8]},
   panels:["board"],controls:["srv","model","dtype","tp","batch"],locks:{model:"The team wants Llama 3.1 405B.",dtype:"Quality review requires FP8."},
   brief:`<p>Next up: <b>Llama 3.1 405B</b> in FP8, about <b>406 GB</b>. No single GPU comes close, but the server has 640 GB in total.</p><p><b>Tensor parallelism (TP)</b> splits every layer's weight matrices across GPUs. Each GPU holds a slice and computes its part of every token; after each layer the GPUs combine partial results with an all-reduce over NVLink.</p><p>Choose a TP size so 405B fits on the server.</p><div class="mathbox">weights per GPU = 406 GB ÷ TP size
 TP 4 → 101 GB (> 80 GB)    TP 8 → 51 GB</div>`,
@@ -1238,7 +1240,7 @@ TP 4 → 101 GB (> 80 GB)    TP 8 → 51 GB</div>`,
   debrief:`<p>With TP 8 the server acts as one big GPU with 640 GB: every GPU holds 1/8 of each layer, and they combine results 252 times per token (2 all-reduces × 126 layers).</p><ul><li>Look at the communication share: around 17–20% of each token's time goes to NVLink traffic. That's the price of splitting.</li><li>The same flag in real life: <code>vllm serve meta-llama/Llama-3.1-405B-Instruct --tensor-parallel-size 8 --quantization fp8</code>.</li><li>TP 8 also made each token faster: each GPU reads only 1/8 of the weights.</li></ul>`,
   links:{up:"To the serving layer this is one 'model endpoint' backed by 8 GPUs.",down:"Every all-reduce is NCCL over NVLink. Next level: what happens without NVLink."}},
 
- {world:3,title:"The slow road",concept:"NVLink vs PCIe",layers:{on:[9],near:[8]},
+ {id:"nvlink-vs-pcie",world:3,title:"The slow road",concept:"NVLink vs PCIe",layers:{on:[9],near:[8]},
   panels:["board"],controls:["srv","model","dtype","tp","batch","prompt"],locks:{model:"The team wants Llama 3.1 405B.",dtype:"Quality review requires FP8.",tp:"405B needs all 8 GPUs.",prompt:"Typical prompt: 8k tokens."},
   brief:`<p>Procurement found a cheaper box: the <b>same 8 H100s</b> in a <b>PCIe server</b>, with no NVLink. On paper it has identical GPUs at 20% less per hour.</p><p>Run 405B with TP 8 and look at what happens to time to first token and token speed. Every layer's all-reduce now crawls through PCIe switches and the CPUs.</p><p>The product needs <b>first token in at most 1.5 s</b> for an 8k prompt and <b>at least 35 tokens/s</b> per user.</p>`,
   setup(S){S.srv="pcie";S.model="llama-405b";S.dtype="fp8";S.tp=8;S.batch=16;S.prompt=8192},
@@ -1248,7 +1250,7 @@ TP 4 → 101 GB (> 80 GB)    TP 8 → 51 GB</div>`,
   debrief:`<p>Same GPUs, very different server. On PCIe, communication took ~40% of every token and first-token time nearly quadrupled, because prefill pushes hundreds of megabytes through an all-reduce after every layer.</p><ul><li>The cheaper box isn't cheaper per token: it costs more per million tokens because it does less work per hour.</li><li>PCIe servers are fine for running many independent small replicas (TP 1), where GPUs never talk.</li><li>When you compare GPU offers, ask about the interconnect, not just the GPU model.</li></ul>`,
   links:{up:"Latency SLOs (layers 1 and 3) quietly depend on this hardware detail.",down:"NVLink stops at the edge of the server (or the rack, for GB200 NVL72). Beyond that it's InfiniBand or Ethernet: World 4."}},
 
- {world:3,title:"Shards or replicas?",concept:"TP size vs replicas",layers:{on:[9],near:[5]},
+ {id:"tp-vs-replicas",world:3,title:"Shards or replicas?",concept:"TP size vs replicas",layers:{on:[9],near:[5]},
   panels:["board"],controls:["srv","model","dtype","tp","batch"],locks:{model:"The product team chose Llama 3.1 70B.",dtype:"Quality review signed off on FP8.",srv:"You have one HGX server."},
   brief:`<p>Back to <b>Llama 3.1 70B</b> on one HGX server. You can run <b>8 replicas</b> (TP 1), <b>4 × TP 2</b>, <b>2 × TP 4</b> or <b>1 × TP 8</b>. The batch slider sets users per replica.</p><p>Fewer, bigger shards pay more NVLink traffic but leave far more memory for KV cache, so each replica can batch more users. More replicas avoid communication but each one is cramped.</p><p>Hit <b>at least 8,000 tokens/s</b> for the whole server while every user still gets <b>at least 60 tokens/s</b>.</p>`,
   setup(S){S.srv="hgx";S.model="llama-70b";S.dtype="fp8";S.tp=1;S.batch=4;S.ctx=4096},
@@ -1258,7 +1260,7 @@ TP 4 → 101 GB (> 80 GB)    TP 8 → 51 GB</div>`,
   debrief:`<p>Here TP 8 won: it spends ~25% of each step on NVLink, but holding only 9 GB of weights per GPU leaves room for a 128-user batch.</p><ul><li>The answer depends on the interconnect. On the PCIe server (try it in the Server lab), communication eats two-thirds of every TP 8 step and smaller TP groups win.</li><li>It also depends on the model and target. A model that fits comfortably on one GPU with room for KV cache is usually best served as many small replicas.</li><li>Production teams sweep these settings per model and per GPU type, often with the inference engine's benchmark tools.</li></ul>`,
   links:{up:"The gateway (layer 3) can route traffic across replicas; the serving layer (5) decides TP size per replica.",down:"Across servers the same trade-off appears with a much slower network: World 4."}},
 
- {world:3,title:"Checkpoint: one server",concept:"World 3 quiz",quiz:true,layers:{on:[9],near:[8,5]},
+ {id:"quiz-one-server",world:3,title:"Checkpoint: one server",concept:"World 3 quiz",quiz:true,layers:{on:[9],near:[8,5]},
   questions:[
    {q:"What does 'NV18' between two GPUs in nvidia-smi topo -m mean?",o:["They share 18 GB of memory","They're connected by 18 NVLink links","They're 18 hops apart","They run CUDA 18"],a:1,why:"On HGX H100, each GPU has 18 NVLink 4 links into NVSwitch, so every pair shows NV18."},
    {q:"Why does tensor parallelism need fast GPU-to-GPU links?",o:["It copies the whole model to each GPU","GPUs combine partial results with an all-reduce after every layer","It only runs on one GPU at a time","It needs to read from disk"],a:1,why:"Each GPU computes part of every layer, so results must be summed across GPUs twice per layer, for every token."},
@@ -1271,7 +1273,7 @@ TP 4 → 101 GB (> 80 GB)    TP 8 → 51 GB</div>`,
 ];
 /* ---------- World 4: many servers ---------- */
 const W4L=[
- {world:4,title:"Meet the fabric",concept:"InfiniBand, RDMA & rails",layers:{on:[10],near:[9]},
+ {id:"fabric",world:4,title:"Meet the fabric",concept:"InfiniBand, RDMA & rails",layers:{on:[10],near:[9]},
   panels:["cluster"],controls:["net"],
   brief:`<p>Inside a server, GPUs use NVLink. Between servers, each GPU gets its own network card: a <b>400 Gb/s NIC per GPU</b>, eight per server. Each NIC is a <b>rail</b>: GPU 1 of every server plugs into the same <b>leaf switch</b>, GPU 2 into the next, and leaves connect through <b>spine switches</b>.</p><p>Most AI clusters run <b>InfiniBand</b> or RDMA-capable Ethernet (<b>RoCE</b>). <b>RDMA</b> lets one machine's NIC write straight into another machine's memory without the CPUs copying data.</p><p>You're logged into <code>node-1</code>. Check the NICs with <code>ibstat</code>, measure the link to <code>node-2</code> with <code>ib_write_bw</code>, and tap a NIC and a leaf switch in the diagram.</p>`,
   setup(S){S.mode="fabric";S.nodes=2;S.net="ib"},
@@ -1281,7 +1283,7 @@ const W4L=[
   debrief:`<p>One NIC gave ~390 Gb/s, close to its 400 Gb/s line rate. Eight of them give each server about <b>400 GB/s</b> to the rest of the cluster.</p><ul><li>That sounds like a lot, but per GPU it's 50 GB/s against NVLink's 450 GB/s. Crossing a server boundary is ~9× slower per GPU, and adds microseconds of latency per hop.</li><li>That gap is the single most important fact for multi-node design: keep the chattiest traffic inside the server.</li><li>Rail-optimised wiring means GPU n in one server usually reaches GPU n in another through a single switch.</li></ul>`,
   links:{up:"Training clusters and multi-node inference both live or die by this network.",down:"Physically: optical cables, transceivers and switches, often a major share of cluster cost and power."}},
 
- {world:4,title:"Two boxes, one model",concept:"Ray clusters & multi-node",layers:{on:[10],near:[5,8]},
+ {id:"multi-node",world:4,title:"Two boxes, one model",concept:"Ray clusters & multi-node",layers:{on:[10],near:[5,8]},
   panels:["cluster"],controls:[],
   brief:`<p>The team wants <b>Llama 3.1 405B in BF16</b>, no quantisation: <b>812 GB</b>. One HGX H100 server has 640 GB, so it takes <b>two servers</b>.</p><p>Something has to make two machines act as one pool of GPUs. <b>Ray</b> does that: start a <b>head node</b>, have the other machine <b>join</b> it, and Ray sees 16 GPUs. vLLM then uses Ray to place one model across them.</p><p>You're on <code>node-1</code>. Start Ray, <code>ssh node-2</code> and join it to the cluster, check <code>ray status</code>, then launch the model across 16 GPUs from the head node.</p><div class="mathbox">node-1$ ray start --head --port=6379
 node-2$ ray start --address=node-1:6379
@@ -1296,7 +1298,7 @@ node-1$ vllm serve meta-llama/Llama-3.1-405B-Instruct \\
   debrief:`<p>Two servers, one model. Ray pooled 16 GPUs, and vLLM used <b>tensor parallelism inside each server</b> (TP 8 over NVLink) and <b>pipeline parallelism across servers</b> (PP 2: layers 1–63 on node-1, 64–126 on node-2).</p><ul><li>Ray is a general distributed-computing framework: the same cluster can run training (Ray Train), batch inference (Ray Data) and serving (Ray Serve).</li><li>The head node is a single point of control; production setups add monitoring and restart policies.</li><li>On Kubernetes, <b>KubeRay</b> creates Ray clusters as Kubernetes objects (World 5). Slurm is the HPC alternative, common for training.</li></ul>`,
   links:{up:"To the gateway this is still one endpoint, just a 16-GPU one.",down:"Pipeline stages hand activations to each other over InfiniBand, once per stage per step. Next level: why that split matters."}},
 
- {world:4,title:"Split the right way",concept:"TP inside, PP across",layers:{on:[10],near:[5,8]},
+ {id:"pipeline-parallel",world:4,title:"Split the right way",concept:"TP inside, PP across",layers:{on:[10],near:[5,8]},
   panels:["cluster"],controls:["layout"],
   brief:`<p>A teammate launched 405B as <b>TP 16</b>: one tensor-parallel group spanning both servers. It runs, but first tokens are slow.</p><p>With TP 16, the all-reduce after <b>every layer</b> must cross InfiniBand, ~9× slower per GPU than NVLink. <b>Pipeline parallelism</b> instead passes activations between servers only <b>once per stage</b>.</p><p>Relaunch with a layout that gets <b>first token in at most 2 s</b> (8k prompt) and keeps <b>at least 20 tokens/s</b> per user.</p>`,
   setup(S){S.mode="serve";S.nodes=2;S.net="ib";S.model="llama-405b";S.dtype="bf16";S.ray={head:"node-1",workers:["node-2"]};S.tp=16;S.pp=1;S.job={tp:16,pp:1};S.batch=8;S.prompt=8192},
@@ -1306,7 +1308,7 @@ node-1$ vllm serve meta-llama/Llama-3.1-405B-Instruct \\
   debrief:`<p>The rule of thumb: <b>TP size = GPUs per server, PP size = number of servers</b>. Chatty traffic stays on NVLink; only one hand-off per stage crosses the network.</p><ul><li>TP 16 actually had slightly faster decode (each GPU read less), but its prefill all-reduces crossed InfiniBand 252 times and doubled first-token time.</li><li>TP 4 × PP 4 kept traffic local but made every token walk through 4 stages in turn: slow decode.</li><li>Pipeline parallelism shines for throughput: different requests can occupy different stages at once.</li></ul>`,
   links:{up:"Layout is a serving-layer (5) setting, but choosing it well needs to know the network (10).",down:"Even PP's hand-offs need RDMA to be quick. Next: a workload where the network carries much more."}},
 
- {world:4,title:"Train across racks",concept:"Data parallel training",layers:{on:[10],near:[8]},
+ {id:"data-parallel",world:4,title:"Train across racks",concept:"Data parallel training",layers:{on:[10],near:[8]},
   panels:["cluster"],controls:["nodes","net","gdr"],
   brief:`<p>Training is the network's hardest test. In <b>data-parallel training</b>, every GPU processes different data, then all GPUs <b>all-reduce their gradients</b>, every step: 16 GB for an 8B model.</p><p>The research team is fine-tuning Llama 3.1 8B on <b>4 servers</b> (32 GPUs), but the cluster was built on plain 100G Ethernet. 4 servers run barely faster than 2.</p><p>Get <b>scaling efficiency to at least 95%</b> on 4 nodes: 4 servers should do ≥95% of 4× the work of one. Choose the network, and decide whether to use <b>GPUDirect RDMA</b>, which lets NICs read GPU memory directly instead of copying through the CPU.</p>`,
   setup(S){S.mode="train";S.nodes=4;S.net="eth";S.gdr=false},
@@ -1316,7 +1318,7 @@ node-1$ vllm serve meta-llama/Llama-3.1-405B-Instruct \\
   debrief:`<p>With a 400G RDMA fabric and GPUDirect, the gradient all-reduce shrank from ~2.8 s to ~70 ms per step, and 4 servers now deliver ~96% of the ideal.</p><ul><li>RoCE got within a whisker of InfiniBand here. On a well-tuned network the gap is small; InfiniBand's advantage is that it's lossless and low-latency out of the box.</li><li>Without GPUDirect RDMA, data takes a detour through CPU memory: efficiency dropped below 91%.</li><li>At thousands of GPUs these small percentages are millions of dollars, which is why the network can be 15–20% of a cluster's cost.</li></ul>`,
   links:{up:"Training clusters feed the model layer (6): faster training means more experiments and better models.",down:"Next up the stack: Kubernetes and Slurm decide which jobs get which nodes (World 5)."}},
 
- {world:4,title:"Checkpoint: the cluster",concept:"World 4 quiz",quiz:true,layers:{on:[10],near:[5,8,9]},
+ {id:"quiz-cluster",world:4,title:"Checkpoint: the cluster",concept:"World 4 quiz",quiz:true,layers:{on:[10],near:[5,8,9]},
   questions:[
    {q:"Per GPU, how does an InfiniBand NDR link compare with NVLink on H100?",o:["About the same","~50 GB/s vs ~450 GB/s each way: roughly 9× slower","InfiniBand is faster","InfiniBand only connects storage"],a:1,why:"Each GPU's 400 Gb/s NIC carries 50 GB/s. NVLink 4 carries 450 GB/s each way. That gap shapes every multi-node design."},
    {q:"What does RDMA let a NIC do?",o:["Compress data","Write directly into another machine's memory without the CPUs copying it","Run CUDA kernels","Encrypt the model"],a:1,why:"RDMA cuts out CPU copies and kernel overhead, giving low latency and high throughput. GPUDirect RDMA extends it to GPU memory."},
@@ -1328,28 +1330,26 @@ node-1$ vllm serve meta-llama/Llama-3.1-405B-Instruct \\
   links:{up:"Next: World 5, Kubernetes, decides who gets these GPUs.",down:"You've now covered the physical bottom of the stack."}}
 ];
 /* ---------- splice into the level list and renumber ---------- */
-(function(){const qi=LEVELS.findIndex(l=>l.quiz&&l.world===1);LEVELS.splice(qi,0,...NEW_W1);LEVELS[qi+NEW_W1.length].questions.push(...W1Q_MORE);
-  LEVELS.push(...W3L,...W4L);LEVELS.forEach((l,i)=>{l.id=i+1});
-  const drv=LEVELS.find(l=>l.title==="Driver says no");drv.driverStart=true;
-  const tr=LEVELS.find(l=>l.title==="Follow one matmul");tr.debrief=tr.debrief.replace("level 11","level "+drv.id);
-  LEVELS.find(l=>l.title==="Checkpoint: one GPU").brief=`<p>Nine questions on what you just did. Pick an answer; wrong picks show why, and you can try again. Fewer mistakes, more stars.</p>`;
+(function(){const qi=LEVELS.indexOf(findLevel("quiz-one-gpu"));LEVELS.splice(qi,0,...NEW_W1);LEVELS[qi+NEW_W1.length].questions.push(...W1Q_MORE);
+  LEVELS.push(...W3L,...W4L);
+  findLevel("quiz-one-gpu").brief=`<p>Nine questions on what you just did. Pick an answer; wrong picks show why, and you can try again. Fewer mistakes, more stars.</p>`;
 })();
 WORLDS.push({w:3,h:"World 3 · Many GPUs, one server",p:"NVLink, NVSwitch, NCCL and tensor parallelism on an 8-GPU HGX board."},{w:4,h:"World 4 · Many servers",p:"InfiniBand, RDMA, Ray clusters, multi-node serving and training."});
 SOON.splice(0,SOON.length,
  {n:"W5",t:"Kubernetes makes GPUs consumable",c:"GPU Operator, device plugin, scheduling, MIG in K8s, KubeRay, DCGM"},
  {n:"★",t:"Finale: 8 × H100 ≠ a service",c:"Assemble the path from GPU to API endpoint"});
 Object.assign(LABS,{
- lab3:{id:"lab3",world:3,title:"Server lab",concept:"Free play",lab:true,layers:{on:[9],near:[5,8]},panels:["board"],controls:["srv","model","dtype","tp","batch","ctx","prompt"],
+ 3:{id:"server-lab",world:3,title:"Server lab",concept:"Free play",lab:true,layers:{on:[9],near:[5,8]},panels:["board"],controls:["srv","model","dtype","tp","batch","ctx","prompt"],
   brief:`<p>One 8-GPU server, every knob unlocked. Try the MoE model with TP 8, compare HGX with PCIe at each TP size, or find the cheapest layout for 405B.</p>`,
   setup(S){S.srv="hgx";S.model="llama-70b";S.dtype="fp8";S.tp=4;S.batch=32},goals:[],hints:[],chips:["foundry status","nvidia-smi topo -m","all_reduce_perf -b 8 -e 8G -f 16 -g 8","foundry server pcie","foundry load qwen-235b"]},
- lab4:{id:"lab4",world:4,title:"Cluster lab",concept:"Free play",lab:true,layers:{on:[10],near:[5,8,9]},panels:["cluster"],controls:["mode4","nodes","net","gdr","layout"],
+ 4:{id:"cluster-lab",world:4,title:"Cluster lab",concept:"Free play",lab:true,layers:{on:[10],near:[5,8,9]},panels:["cluster"],controls:["mode4","nodes","net","gdr","layout"],
   brief:`<p>A small cluster, every knob unlocked, with Ray already running across all nodes. Switch between multi-node serving and data-parallel training, change the network, and see what breaks.</p>`,
   setup(S){S.mode="serve";S.nodes=2;S.net="ib";S.model="llama-405b";S.dtype="bf16";S.ray={head:"node-1",workers:["node-2","node-3","node-4"]};S.tp=8;S.pp=2;S.job={tp:8,pp:2};S.batch=8;S.prompt=8192},goals:[],hints:[],chips:["foundry status","ray status","ibstat","foundry mode train","foundry net roce"]}
 });
 </script>
 <script>
 "use strict";
-const AMD_LV={world:1,title:"Team red",concept:"AMD Instinct & ROCm",layers:{on:[9],near:[8]},gpus:ALL_GPUS,
+const AMD_LV={id:"amd-gpus",world:1,title:"Team red",concept:"AMD Instinct & ROCm",layers:{on:[9],near:[8]},gpus:ALL_GPUS,
   panels:["chip"],controls:["gpu","model","dtype","batch","ctx"],locks:{model:"The product team chose Llama 3.1 70B.",dtype:"Quality review signed off on FP8.",batch:"32 analysts at once.",ctx:"8,192-token conversations."},
   brief:`<p>The analytics team wants <b>Llama 3.1 70B</b> for <b>32 people</b> with <b>8k-token</b> conversations, on <b>one GPU</b>, and the budget is <b>$3 per GPU-hour</b>. That's 71 GB of weights plus 86 GB of KV cache: no Hopper GPU holds it, and Blackwell is over budget.</p><p>A cloud provider offers <b>AMD Instinct</b> GPUs. AMD builds its GPUs from <b>chiplets</b>: 8 small compute dies (XCDs) full of <b>Compute Units</b>, AMD's equivalent of SMs, surrounded by 8 HBM stacks. The software stack is <b>ROCm</b> instead of CUDA.</p><p>Find a GPU that fits within budget with at least 25 tokens/s per user. Then check it the AMD way: <code>nvidia-smi</code> won't work, <code>amd-smi</code> will.</p>`,
   setup(S){S.gpu="h200";S.model="llama-70b";S.dtype="fp8";S.batch=32;S.ctx=8192},
@@ -1358,7 +1358,7 @@ const AMD_LV={world:1,title:"Team red",concept:"AMD Instinct & ROCm",layers:{on:
   answer:()=>"foundry gpu mi300x && amd-smi",chips:["foundry status","foundry gpu mi300x","foundry gpu mi325x","amd-smi","nvidia-smi"],
   debrief:`<p>The MI300X's 192 GB holds the model and all 32 conversations on one GPU, at a lower hourly price than an H200 that can't fit it.</p><ul><li>AMD's pitch has been <b>more memory per GPU</b> at a lower price. MI325X (256 GB) and MI355X (288 GB) continue that.</li><li>The real question is <b>software</b>. ROCm (HIP, hipBLASLt, RCCL, MIOpen) mirrors CUDA, and vLLM, SGLang and PyTorch support it, but kernel tuning and new-model support often land on CUDA first. This game assumes equally good software on both; in practice, benchmark your own model.</li><li>Operationally it's a different toolbox: <code>amd-smi</code> instead of <code>nvidia-smi</code>, ROCm container images, the AMD GPU Operator on Kubernetes.</li></ul>`,
   links:{up:"Engines like vLLM hide most vendor differences from the application, if your model and features are supported on ROCm.",down:"World 2's whole software path has an AMD twin: HIP for CUDA, hipBLASLt for cuBLAS, RCCL for NCCL, the amdgpu driver for NVIDIA's."}};
-const PICK_LV={world:1,title:"Pick the GPU",concept:"Matching chip to workload",layers:{on:[9],near:[5,6]},gpus:ALL_GPUS,
+const PICK_LV={id:"gpu-choice",world:1,title:"Pick the GPU",concept:"Matching chip to workload",layers:{on:[9],near:[5,6]},gpus:ALL_GPUS,
   panels:["pick","chip"],controls:["workload","gpu"],
   brief:`<p>Three teams, three workloads, seven GPUs. For each workload, find a GPU that meets every requirement, then lock it in with <code>foundry pick</code>.</p><p>There's no single best GPU. Each workload has a different <b>bottleneck</b>: memory capacity, bandwidth, compute or budget. The trick is to spot which, then read the matching line of the spec sheet. The <b>Compare GPUs</b> button at the top has every spec side by side.</p><p>Prices are this game's illustrative ones; with your real quotes the answers can change.</p>`,
   setup(S){S.wl="chat";S.picks={};Object.assign(S,WL.chat.set);S.gpu="h100"},
@@ -1374,22 +1374,19 @@ const W1Q_AMD=[
  {q:"Before moving a production model to AMD GPUs, what should you check first?",o:["Whether nvidia-smi works","That your model, inference engine and kernels are supported and fast on ROCm","That the GPUs are red","Nothing: CUDA code runs unchanged"],a:1,why:"Specs set the ceiling; software decides how close you get. ROCm support for your exact model and engine version is the real risk."}
 ];
 (function(){
-  const qi=LEVELS.findIndex(l=>l.quiz&&l.world===1);LEVELS.splice(qi,0,AMD_LV,PICK_LV);LEVELS[qi+2].questions.push(...W1Q_AMD);
-  LEVELS.forEach((l,i)=>{l.id=i+1});
-  LEVELS.find(l=>l.title==="Checkpoint: one GPU").brief=`<p>Twelve questions on World 1. Pick an answer; wrong picks show why, and you can try again. Fewer mistakes, more stars.</p>`;
-  const drv=LEVELS.find(l=>l.title==="Driver says no"),tr=LEVELS.find(l=>l.title==="Follow one matmul");tr.debrief=tr.debrief.replace(/classic failure in level \d+/,"classic failure in level "+drv.id);
-  ["Meet the chip","Will it fit?","Room to talk","Fast chip, slow tokens","Fill the factory","Two speeds","Long memories","Many experts","Watts per token"].forEach(t=>{LEVELS.find(l=>l.title===t).gpus=NV_GPUS});
-  ["Meet the HGX board","Too big for one","The slow road","Shards or replicas?"].forEach(t=>{LEVELS.find(l=>l.title===t).srvs=["hgx","pcie"]});
-  const hb=LEVELS.find(l=>l.title==="Meet the HGX board");hb.debrief=hb.debrief.replace("</ul>",`<li>Other boards differ mainly in this fabric. HGX B200 doubles NVLink to 1.8 TB/s per GPU. AMD's 8 × MI300X board wires GPUs in a direct mesh with no switch. NVIDIA's GB200 NVL72 stretches one NVLink domain across 72 GPUs in a rack. Try them in the Server lab.</li></ul>`);
-  LABS.lab1.gpus=ALL_GPUS;LABS.lab3.srvs=Object.keys(SERVERS);
-  LABS.lab3.brief=`<p>8-GPU servers, every knob unlocked: HGX H100, a PCIe H100 box, HGX B200 with NVLink 5, and AMD's 8 × MI300X mesh. Compare the same model and TP size across all four.</p>`;
-  LABS.lab3.chips=["foundry status","foundry server hgxb200","foundry server mi300x","nvidia-smi topo -m","all_reduce_perf -b 8 -e 8G -f 16 -g 8"];
+  const qi=LEVELS.indexOf(findLevel("quiz-one-gpu"));LEVELS.splice(qi,0,AMD_LV,PICK_LV);LEVELS[qi+2].questions.push(...W1Q_AMD);
+  findLevel("quiz-one-gpu").brief=`<p>Twelve questions on World 1. Pick an answer; wrong picks show why, and you can try again. Fewer mistakes, more stars.</p>`;
+  ["gpu-anatomy","memory-fit","kv-cache-memory","memory-bandwidth","batching","prefill-decode","kv-quantisation","moe-on-gpu","perf-per-watt"].forEach(id=>{findLevel(id).gpus=NV_GPUS});
+  ["hgx-board","tensor-parallel","nvlink-vs-pcie","tp-vs-replicas"].forEach(id=>{findLevel(id).srvs=["hgx","pcie"]});
+  LABS[1].gpus=ALL_GPUS;LABS[3].srvs=Object.keys(SERVERS);
+  LABS[3].brief=`<p>8-GPU servers, every knob unlocked: HGX H100, a PCIe H100 box, HGX B200 with NVLink 5, and AMD's 8 × MI300X mesh. Compare the same model and TP size across all four.</p>`;
+  LABS[3].chips=["foundry status","foundry server hgxb200","foundry server mi300x","nvidia-smi topo -m","all_reduce_perf -b 8 -e 8G -f 16 -g 8"];
 })();
 </script>
 <script>
 "use strict";
 const W0L=[
- {world:0,title:"Words into tokens",concept:"Tokens",layers:{on:[6],near:[1,3]},panels:["tok"],controls:[],
+ {id:"tokens",world:0,title:"Words into tokens",concept:"Tokens",layers:{on:[6],near:[1,3]},panels:["tok"],controls:[],
   brief:`<p>Models don't read letters or words. They read <b>tokens</b>: chunks of text from a fixed vocabulary. Llama 3's vocabulary has <b>128,256</b> of them. Common words are usually one token; rare words, names and long numbers break into pieces.</p><p>Everything in this game is counted in tokens: context length, speed (tokens per second) and price (dollars per million tokens).</p><p>Type your own text in the box, or use <code>tokenize …</code> in the terminal. Find a word that splits into several tokens, and try a number or another language.</p>`,
   setup(S){},
   goals:[{t:"Tokenize your own text",ok:S=>!!S.flags.owntext},{t:"Find a word that splits into 2 or more tokens",ok:S=>!!S.flags.split},{t:"Try a number or non-English text",ok:S=>!!S.flags.numintl}],
@@ -1398,34 +1395,34 @@ const W0L=[
   debrief:`<p>Tokens are the model's alphabet. Roughly:</p><ul><li><b>1 token ≈ ¾ of an English word</b>, so 1,000 tokens ≈ 750 words ≈ 1.5 pages.</li><li>Other languages, code and numbers often take <b>more tokens per word</b>, so they cost more and fill the context faster.</li><li>Llama 3 splits numbers into chunks of up to 3 digits, one reason models can be shaky at arithmetic.</li><li>This page uses an approximation of Llama 3's rules; real tokenizers (like OpenAI's tiktoken or Hugging Face's) split slightly differently.</li></ul><p>Each token is then looked up in the model's <b>embedding table</b> and becomes a list of numbers. That's next.</p>`,
   links:{up:"Context windows, rate limits and API bills (layers 1–3) are all counted in tokens.",down:"Every token becomes a vector of numbers that flows through the model's layers."}},
 
- {world:0,title:"What's in 8 billion parameters",concept:"Weights & layers",layers:{on:[6],near:[7,9]},panels:["anatomy"],controls:["model0"],
+ {id:"parameters",world:0,title:"What's in 8 billion parameters",concept:"Weights & layers",layers:{on:[6],near:[7,9]},panels:["anatomy"],controls:["model0"],
   brief:`<p>A <b>parameter</b> (or <b>weight</b>) is one number the model learned in training. Llama 3.1 8B has 8.03 billion of them, arranged in big grids called <b>matrices</b>.</p><p>The model is a stack. An <b>embedding table</b> turns each token into a list of 4,096 numbers. Then <b>32 identical layers</b> each refine that list with two blocks: <b>attention</b> (tokens look at each other) and a <b>feed-forward (MLP)</b> block (each token is processed on its own). Finally an <b>output head</b> scores every token in the vocabulary to pick the next one.</p><p>Tap the blocks to see their sizes. Then switch to 70B: same design, wider and deeper.</p>`,
   setup(S){S.model="llama-8b"},
   goals:[{t:"Inspect an attention block",ok:S=>S.inspected.includes("attn")},{t:"Inspect a feed-forward (MLP) block",ok:S=>S.inspected.includes("mlp")},{t:"Look inside Llama 3.1 70B",ok:S=>!!S.flags.saw70}],
   hints:["Tap 'Attention' and 'MLP' in any layer of the stack, or type foundry inspect attn.","Use the Model buttons, or type params llama-70b."],
   answer:()=>"foundry inspect attn && foundry inspect mlp && params llama-70b",chips:["config llama-8b","foundry inspect attn","foundry inspect mlp","params llama-70b"],
-  debrief:`<p>Parameter count comes from just a few numbers in the model's config: hidden size (width), number of layers (depth), vocabulary, and the MLP's inner size.</p><ul><li>Most parameters sit in the <b>MLP blocks</b> (about 70% in 8B, 80% in 70B): that's where much of the model's knowledge is stored.</li><li>Weights are fixed after training. Every user shares one copy, and every run of the model uses all of them, which is why the GPU must read the whole model for each token.</li><li>Size in memory = parameters × bytes per parameter: 8.03 B × 2 bytes (BF16) ≈ 16 GB. That's World 1, Level 2.</li></ul>`,
+  debrief:`<p>Parameter count comes from just a few numbers in the model's config: hidden size (width), number of layers (depth), vocabulary, and the MLP's inner size.</p><ul><li>Most parameters sit in the <b>MLP blocks</b> (about 70% in 8B, 80% in 70B): that's where much of the model's knowledge is stored.</li><li>Weights are fixed after training. Every user shares one copy, and every run of the model uses all of them, which is why the GPU must read the whole model for each token.</li><li>Size in memory = parameters × bytes per parameter: 8.03 B × 2 bytes (BF16) ≈ 16 GB. That's {{lvl:memory-fit}}.</li></ul>`,
   links:{up:"Model choice (layer 6) fixes these numbers; optimisation (layer 7) changes the bytes per parameter.",down:"These matrices are what the GPU streams from memory to its SMs for every token."}},
 
- {world:0,title:"Who is \"it\"?",concept:"Attention: queries, keys, values",layers:{on:[6],near:[8]},panels:["attn"],controls:["head"],
+ {id:"attention",world:0,title:"Who is \"it\"?",concept:"Attention: queries, keys, values",layers:{on:[6],near:[8]},panels:["attn"],controls:["head"],
   brief:`<p>Attention is how a token gathers context from the tokens before it. Each token makes three vectors:</p><ul><li><b>Query</b>: what am I looking for?</li><li><b>Key</b>: what do I contain?</li><li><b>Value</b>: what do I pass on if I'm chosen?</li></ul><p>A token compares its query with every earlier token's key. Good matches get more weight, and the token takes a weighted mix of their values.</p><p>Click <b>"it"</b> in the sentence: which word does it look at? Then switch to head 2: each layer has many heads, each looking for something different. Finally click the first word.</p>`,
   setup(S){S.att={i:-1,head:1}},
   goals:[{t:"See what \"it\" attends to (head 1)",ok:S=>!!S.flags.attIt},{t:"Switch to head 2",ok:S=>!!S.flags.head2},{t:"Click the first word, \"The\"",ok:S=>!!S.flags.attFirst}],
   hints:["Click the word 'it' in the sentence, or type attend it.","Use the Head buttons (or head 2), then click 'The' (attend The)."],
   answer:()=>"attend it && head 2 && attend The",chips:["attend it","attend tired","head 2","attend The"],
-  debrief:`<p>Head 1 linked "it" back to "cat"; head 2 just looked at the previous word. Real models have dozens of heads per layer, each learning its own pattern. The patterns here are illustrative, but these two kinds really occur.</p><ul><li><b>Attention only looks backwards.</b> "The" could only see itself. That's why models write left to right, one token at a time.</li><li>An earlier token's <b>keys and values never change</b> when later tokens arrive. So they can be computed once and saved: that's the <b>KV cache</b> (Level 5).</li><li>Llama 3.1 8B has 32 query heads but only <b>8 key/value heads</b> per layer. Sharing keys and values between heads (<i>grouped-query attention</i>) makes the KV cache 4× smaller.</li></ul>`,
+  debrief:`<p>Head 1 linked "it" back to "cat"; head 2 just looked at the previous word. Real models have dozens of heads per layer, each learning its own pattern. The patterns here are illustrative, but these two kinds really occur.</p><ul><li><b>Attention only looks backwards.</b> "The" could only see itself. That's why models write left to right, one token at a time.</li><li>An earlier token's <b>keys and values never change</b> when later tokens arrive. So they can be computed once and saved: that's the <b>KV cache</b> ({{lvl:kv-cache-basics}}).</li><li>Llama 3.1 8B has 32 query heads but only <b>8 key/value heads</b> per layer. Sharing keys and values between heads (<i>grouped-query attention</i>) makes the KV cache 4× smaller. {{lvl:attention-heads}} shows how.</li></ul>`,
   links:{up:"Long context means attending over many more tokens, which means more keys and values to store and read.",down:"Attention kernels like FlashAttention (World 2) compute this efficiently on the GPU."}},
 
- {world:0,title:"One word at a time",concept:"Generating text: prefill & decode",layers:{on:[6],near:[5]},panels:["gen"],controls:["gen"],
+ {id:"generation",world:0,title:"One word at a time",concept:"Generating text: prefill & decode",layers:{on:[6],near:[5]},panels:["gen"],controls:["gen"],
   brief:`<p>A language model only ever does one thing: given the text so far, <b>score every possible next token</b>. To write an answer, you run the whole model, pick a token, append it, and run again.</p><p>The first run reads your whole prompt at once (<b>prefill</b>). Every run after that adds one token (<b>decode</b>). Each run uses every weight in the model.</p><p>Step through the answer to <i>"The capital of France is"</i>. Watch the counters, and tap a run to see the model's top choices.</p>`,
   setup(S){S.gen={k:0,cache:true,sel:null}},
   goals:[{t:"Run the first step (prefill)",ok:S=>S.gen.k>=1},{t:"Look at a run's top choices (tap a row)",ok:S=>!!S.flags.genSel},{t:"Generate the full answer, until the model stops",ok:S=>S.gen.k>=GEN_OUT.length}],
   hints:["Press 'Next step' or type generate step.","Tap any row in the runs table. Keep stepping until the model outputs its end-of-turn token."],
   answer:()=>"generate step && generate inspect 1 && generate all",chips:["generate step","generate all","generate inspect 3","generate reset"],
-  debrief:`<p>The answer took <b>8 full runs</b> of the model: 1 prefill plus 7 decodes. Each run read all 16 GB of weights to produce a single token, which is why decode speed depends on memory bandwidth (World 1, Level 4).</p><ul><li>The model stops by predicting a special <b>end-of-turn token</b>, or when it hits a maximum length you set.</li><li>Here we always took the top choice (<i>greedy</i>). Real chat apps usually <b>sample</b> with a temperature, so answers vary between runs.</li><li>Prompt length drives the first run (time to first token); answer length drives how many decode runs follow.</li></ul>`,
-  links:{up:"Output tokens are usually priced higher than input tokens: each one costs a full run of the model.",down:"World 1 Levels 4–6 show how GPU bandwidth and compute set the speed of each run."}},
+  debrief:`<p>The answer took <b>8 full runs</b> of the model: 1 prefill plus 7 decodes. Each run read all 16 GB of weights to produce a single token, which is why decode speed depends on memory bandwidth ({{lvl:memory-bandwidth}}).</p><ul><li>The model stops by predicting a special <b>end-of-turn token</b>, or when it hits a maximum length you set.</li><li>Here we always took the top choice (<i>greedy</i>). Real chat apps usually <b>sample</b> with a temperature, so answers vary between runs.</li><li>Prompt length drives the first run (time to first token); answer length drives how many decode runs follow.</li></ul>`,
+  links:{up:"Output tokens are usually priced higher than input tokens: each one costs a full run of the model.",down:"{{lvl:memory-bandwidth}} to {{lvl:prefill-decode}} show how GPU bandwidth and compute set the speed of each run."}},
 
- {world:0,title:"Notes to self",concept:"The KV cache",layers:{on:[6],near:[5,9]},panels:["gen","kv"],controls:["gen","cache"],
+ {id:"kv-cache-basics",world:0,title:"Notes to self",concept:"The KV cache",layers:{on:[6],near:[5,9]},panels:["gen","kv"],controls:["gen","cache"],
   brief:`<p>Attention needs the keys and values of every earlier token. Without saving them, each new token would have to <b>recompute them for the whole conversation so far</b>.</p><p>The <b>KV cache</b> stores each token's keys and values, in every layer, the first time they're computed. It trades <b>memory</b> for <b>compute</b>.</p><p>Generate the answer with the cache <b>off</b>, then <b>on</b>, and compare the work. Then use the calculator to see how much memory the cache needs per token for Llama 3.1 70B.</p><div class="mathbox">KV per token = 2 (key + value) × layers × KV heads × head size × bytes
 Llama 3.1 8B = 2 × 32 × 8 × 128 × 2 = 131,072 bytes ≈ 0.13 MB</div>`,
   setup(S){S.gen={k:0,cache:false,sel:null}},
@@ -1433,9 +1430,9 @@ Llama 3.1 8B = 2 × 32 × 8 × 128 × 2 = 131,072 bytes ≈ 0.13 MB</div>`,
   hints:["Press 'Run all' with the cache off. Then switch the cache on and press 'Run all' again (it resets automatically).","Pick 70B in the calculator's Model buttons, or type kv per-token llama-70b."],
   answer:()=>"kv off && generate all && kv on && generate all && kv per-token llama-70b",chips:["kv off","kv on","generate all","kv per-token llama-70b","generate reset"],
   debrief:`<p>Without the cache, the model processed 68 tokens to write 8; with it, 12. For real conversations the gap is enormous: a 1,000-token answer to a 1,000-token prompt is about 1.5 million token-passes without a cache and 2,000 with one.</p><ul><li>The price is memory: every token keeps its keys and values in every layer. For Llama 3.1 70B that's ~0.33 MB per token, ~43 GB for a single 128k-token conversation.</li><li>Now the GPU picture makes sense: <b>weights</b> are fixed and shared (blue in World 1's memory bar); the <b>KV cache</b> grows with every token of every user (yellow).</li><li>Fewer KV heads (grouped-query attention) and FP8 KV storage both shrink it.</li></ul>`,
-  links:{up:"Serving engines manage the KV cache (paging, reuse across requests, eviction): layer 5.",down:"World 1 Levels 3 and 7: the KV cache decides how many users fit on a GPU."}},
+  links:{up:"Serving engines manage the KV cache (paging, reuse across requests, eviction): layer 5.",down:"{{lvl:kv-cache-memory}} and {{lvl:kv-quantisation}}: the KV cache decides how many users fit on a GPU."}},
 
- {world:0,title:"Checkpoint: inside the model",concept:"World 0 quiz",quiz:true,layers:{on:[6],near:[5]},
+ {id:"quiz-inside-model",world:0,title:"Checkpoint: inside the model",concept:"World 0 quiz",quiz:true,layers:{on:[6],near:[5]},
   questions:[
    {q:"Roughly how many English words fit in 1,000 tokens?",o:["About 250","About 750","About 1,000","About 4,000"],a:1,why:"A token averages about ¾ of an English word. Other languages and code usually need more tokens per word."},
    {q:"What is a model's parameter count?",o:["The number of tokens it was trained on","The number of learned numbers in its weight matrices","Its context length","The number of GPUs it needs"],a:1,why:"8B parameters means 8 billion learned numbers. Size in memory = parameters × bytes per parameter."},
@@ -1446,45 +1443,63 @@ Llama 3.1 8B = 2 × 32 × 8 × 128 × 2 = 131,072 bytes ≈ 0.13 MB</div>`,
   debrief:`<p>You now have the model's side of the picture: tokens in, weights shared by everyone, attention looking back, one run per output token, and a KV cache that grows with every token. World 1 puts all of that on a GPU.</p>`,
   links:{up:"The serving layer (5) is built around these mechanics.",down:"World 1: what the GPU has to do to run them."}}
 ];
-(function(){LEVELS.unshift(...W0L);LEVELS.forEach((l,i)=>{l.id=i+1});
-  const cnt={};LEVELS.forEach(l=>{cnt[l.world]=(cnt[l.world]||0)+1;l.n=cnt[l.world]});
-  const drv=LEVELS.find(l=>l.title==="Driver says no"),tr=LEVELS.find(l=>l.title==="Follow one matmul");tr.debrief=tr.debrief.replace(/classic failure in level \d+/,"classic failure in level "+drv.n);
-})();
+LEVELS.unshift(...W0L);
 WORLDS.unshift({w:0,h:"World 0 · Inside the model",p:"Tokens, weights, attention, one-word-at-a-time generation and the KV cache. Start here if those words are new."});
 STACK_COVER[6]=["W0, W1","here"];
 </script>
 <script>
 "use strict";
-const MOE_LV={world:0,title:"A team of experts",concept:"Mixture of experts (MoE)",layers:{on:[6],near:[9]},panels:["moe"],controls:["moebatch"],
-  brief:`<p>In the last level, every token went through every layer's whole <b>MLP block</b>. That's a <b>dense</b> model.</p><p>A <b>mixture-of-experts</b> model replaces each MLP block with many smaller MLPs, called <b>experts</b>, plus a small <b>router</b>. For each token, the router scores every expert and sends the token to only the top few. Qwen3 235B-A22B has <b>128 experts per layer and uses 8</b> for each token.</p><p>Tap a few different tokens and watch which experts light up. Then raise the number of tokens processed at once to 32 and see how many experts get used.</p>`,
+const MOE_LV={id:"moe-experts",world:0,title:"A team of experts",concept:"Mixture of experts (MoE)",layers:{on:[6],near:[9]},panels:["moe"],controls:["moebatch"],
+  brief:`<p>In {{lvl:parameters}}, every token went through every layer's whole <b>MLP block</b>. That's a <b>dense</b> model.</p><p>A <b>mixture-of-experts</b> model replaces each MLP block with many smaller MLPs, called <b>experts</b>, plus a small <b>router</b>. For each token, the router scores every expert and sends the token to only the top few. Qwen3 235B-A22B has <b>128 experts per layer and uses 8</b> for each token.</p><p>Tap a few different tokens and watch which experts light up. Then raise the number of tokens processed at once to 32 and see how many experts get used.</p>`,
   setup(S){S.moe={tok:-1,batch:1,seen:[]}},
   goals:[{t:"Route a token through the router",ok:S=>S.moe.seen.length>=1},{t:"Compare a second, different token",ok:S=>S.moe.seen.length>=2},{t:"Process 32 or more tokens at once",ok:S=>S.moe.batch>=32}],
   hints:["Tap any token chip, or type route Paris.","Tap another token, then use the Tokens at once buttons (or batch 32)."],
   answer:()=>"route Paris && route gracias && batch 32",chips:["route Paris","route def","route gracias","batch 32","batch 1"],
-  debrief:`<p>Each token used only 8 of 128 experts, so it did about <b>22 B parameters' worth of work</b> in a 235 B model. That's the MoE deal: the knowledge of a huge model at the speed of a much smaller one.</p><ul><li><b>Memory still holds everything.</b> Any token might pick any expert, so all 235 B parameters must sit in GPU memory.</li><li><b>Many users wake up most experts.</b> With 32 tokens in one step, around 87% of the experts were picked by someone, so the GPU has to read most of the weights again. That's what you'll see in World 1, Level 8.</li><li>Each layer has its own router and its own experts; this shows one layer of 94. Real routing is learned in training; the picks here are illustrative.</li><li>Many MoE models also have a <b>shared expert</b> that every token uses, for knowledge everything needs.</li></ul>`,
+  debrief:`<p>Each token used only 8 of 128 experts, so it did about <b>22 B parameters' worth of work</b> in a 235 B model. That's the MoE deal: the knowledge of a huge model at the speed of a much smaller one.</p><ul><li><b>Memory still holds everything.</b> Any token might pick any expert, so all 235 B parameters must sit in GPU memory.</li><li><b>Many users wake up most experts.</b> With 32 tokens in one step, around 87% of the experts were picked by someone, so the GPU has to read most of the weights again. That's what you'll see in {{lvl:moe-on-gpu}}.</li><li>Each layer has its own router and its own experts; this shows one layer of 94. Real routing is learned in training; the picks here are illustrative.</li><li>Many MoE models also have a <b>shared expert</b> that every token uses, for knowledge everything needs.</li></ul>`,
   links:{up:"Most frontier models (DeepSeek, Qwen, Llama 4, gpt-oss, Kimi) are MoE, so model choice now means choosing total vs active size.",down:"Big MoE models spread experts across many GPUs (expert parallelism), which needs fast GPU-to-GPU links (World 3)."}};
-const HEADS_LV={world:0,title:"Many heads, shared notes",concept:"Attention heads & KV heads",layers:{on:[6],near:[5,9]},panels:["heads"],controls:["hdesign"],
+const HEADS_LV={id:"attention-heads",world:0,title:"Many heads, shared notes",concept:"Attention heads & KV heads",layers:{on:[6],near:[5,9]},panels:["heads"],controls:["hdesign"],
   brief:`<p>A token's vector in Llama 3.1 8B has 4,096 numbers. Attention splits it into <b>32 heads of 128 numbers</b>. Each head runs its own small attention, so each can learn a different question: one follows the previous word, another links "it" to "cat".</p><p>Every query head needs <b>keys and values</b> to search, and those keys and values are what the KV cache stores. Llama 3.1 lets <b>groups of 4 query heads share one key/value head</b> (grouped-query attention), so it stores 8 KV heads, not 32.</p><p>Tap a query head to see which KV head it shares. Then switch between the three designs and watch what happens to memory.</p>`,
   setup(S){S.hd={design:"gqa",q:-1}},
   goals:[{t:"Tap a query head to see its shared KV head",ok:S=>!!S.flags.qhead},{t:"Try multi-head attention (32 KV heads)",ok:S=>!!S.flags.mha},{t:"Try multi-query attention (1 KV head)",ok:S=>!!S.flags.mqa}],
   hints:["Tap any small box in the query heads row, or type qhead 5.","Use the Design buttons, or type heads mha and heads mqa."],
   answer:()=>"qhead 5 && heads mha && heads mqa && heads gqa",chips:["qhead 5","heads mha","heads gqa","heads mqa"],
   debrief:`<p>Query heads cost nothing to store: a query is used once, when its token is processed. Keys and values must be kept, because every later token searches them. So the number of <b>KV heads</b> sets the KV cache size.</p><ul><li><b>Multi-head (32 KV heads):</b> most flexible, biggest cache. About 0.5 MB per token for an 8B-sized model.</li><li><b>Grouped-query (8):</b> 4× smaller cache, little quality loss. Llama 3, Qwen and most current models use it.</li><li><b>Multi-query (1):</b> 32× smaller, but every head searches the same notes, which can cost quality.</li><li>So the KV formula uses KV heads: 2 × layers × <b>KV heads</b> × head size × bytes.</li></ul>`,
-  links:{up:"Fewer KV heads means more users or longer conversations per GPU: a cost lever chosen when the model is designed.",down:"World 1, Levels 3 and 7: the KV cache decides how many users fit."}};
+  links:{up:"Fewer KV heads means more users or longer conversations per GPU: a cost lever chosen when the model is designed.",down:"{{lvl:kv-cache-memory}} and {{lvl:kv-quantisation}}: the KV cache decides how many users fit."}};
 const W0Q_MORE=[
  {q:"A mixture-of-experts model has 235 B total and 22 B active parameters. What does 'active' mean?",o:["The parameters loaded into memory","The parameters each token actually uses, through the experts the router picks","The parameters that were trained recently","The parameters in the attention blocks"],a:1,why:"All 235 B sit in memory, but each token goes through only the chosen experts, about 22 B parameters' worth of work."},
  {q:"Why does Llama 3.1 8B store 8 key/value heads per layer instead of 32?",o:["It only has 8 attention heads","Groups of 4 query heads share one key/value head, making the KV cache 4× smaller","Keys and values are compressed to 8 bits","Only 8 layers keep a cache"],a:1,why:"Grouped-query attention keeps 32 query heads (32 different questions) but stores only 8 sets of keys and values."}
 ];
 (function(){
-  const p=LEVELS.findIndex(l=>l.title==="What's in 8 billion parameters");LEVELS.splice(p+1,0,MOE_LV);
-  const a=LEVELS.findIndex(l=>l.title==="Who is \"it\"?");LEVELS.splice(a+1,0,HEADS_LV);
-  LEVELS.find(l=>l.title==="Checkpoint: inside the model").questions.push(...W0Q_MORE);
-  LEVELS.forEach((l,i)=>{l.id=i+1});const cnt={};LEVELS.forEach(l=>{cnt[l.world]=(cnt[l.world]||0)+1;l.n=cnt[l.world]});
-  const att=LEVELS.find(l=>l.title==="Who is \"it\"?");att.debrief=att.debrief.replace("makes the KV cache 4× smaller.</li>","makes the KV cache 4× smaller. The next level shows how.</li>").replace("that's the <b>KV cache</b> (Level 5)","that's the <b>KV cache</b> (Level 7)");
-  const kv=LEVELS.find(l=>l.title==="Notes to self");
-  const ex=LEVELS.find(l=>l.title==="Many experts");ex.brief=ex.brief.replace("<p>Find a GPU and model that hit the target.","<p>(World 0, Level 3 shows how the router picks experts.) Find a GPU and model that hit the target.");
-  void kv;
+  const p=LEVELS.indexOf(findLevel("parameters"));LEVELS.splice(p+1,0,MOE_LV);
+  const a=LEVELS.indexOf(findLevel("attention"));LEVELS.splice(a+1,0,HEADS_LV);
+  findLevel("quiz-inside-model").questions.push(...W0Q_MORE);
 })();
+</script>
+<script>
+"use strict";
+/* ============ level catalog: runs once, after every level file has spliced its levels in ============ */
+/* IDs are permanent topic slugs. Display numbers (n) and list position (idx) are worked out here, never stored. */
+const LEVEL_ID_RE=/^[a-z0-9]+(-[a-z0-9]+)*$/;
+// A Map, not a plain object, so an ID like "constructor" can't hit Object.prototype.
+let LEVEL_BY_ID=new Map();
+function finaliseLevels(){
+  const bad=[],seen=new Map();
+  const check=(x,where)=>{
+    if(typeof x.id!=="string"||!LEVEL_ID_RE.test(x.id))bad.push(`${where} "${x.title}" has a badly formed ID: ${JSON.stringify(x.id)}`);
+    else if(seen.has(x.id))bad.push(`Duplicate ID "${x.id}": "${seen.get(x.id)}" and "${x.title}"`);
+    else seen.set(x.id,x.title)};
+  LEVELS.forEach(l=>check(l,"Level"));Object.values(LABS).forEach(l=>check(l,"Lab"));
+  // Fail loudly: a duplicate would silently share one set of saved stars between two levels.
+  if(bad.length)throw new Error("Level catalog: "+bad.join("; "));
+  const cnt={};LEVEL_BY_ID=new Map();
+  LEVELS.forEach((l,i)=>{l.idx=i;cnt[l.world]=(cnt[l.world]||0)+1;l.n=cnt[l.world];LEVEL_BY_ID.set(l.id,l)});
+}
+finaliseLevels();
+/* Level text points at other levels as {{lvl:<id>}}. Rendered at display time so it always shows the current numbers. */
+const LVL_REF_RE=/\{\{lvl:([^}]*)\}\}/g;
+function refs(s){if(typeof s!=="string")return s;
+  // An unknown ID degrades to plain words rather than a crash; the test suite catches it before release.
+  return s.replace(LVL_REF_RE,(m,id)=>{const l=LEVEL_BY_ID.get(id);return l?`World ${l.world}, Level ${l.n}`:"another level"})}
 </script>
 <script>
 "use strict";
@@ -1958,20 +1973,20 @@ function pickHtml(S){const all=Object.keys(WL).every(k=>S.picks[k]);
 function cmpBest(vals,hi=true){const v=vals.filter(x=>typeof x==="number");const b=hi?Math.max(...v):Math.min(...v);return x=>x===b}
 function renderCompare(){
   const gs=ALL_GPUS.map(k=>GPUS[k]);
-  const lv=t=>{const l=LEVELS.find(x=>x.title===t);return l?`<button type="button" class="lvlink" data-level="${l.id}">W${l.world}·L${l.n}</button>`:""};
+  const lv=id=>{const l=LEVEL_BY_ID.get(id);return l?`<button type="button" class="lvlink" data-level="${l.id}">W${l.world}·L${l.n}</button>`:""};
   const row=(label,fn,num,hi,link)=>{const vals=gs.map(fn);const best=num?cmpBest(vals,hi):()=>false;return`<tr><th>${label}${link?" "+link:""}</th>${vals.map(v=>`<td class="${best(v)?"best":""}">${typeof v==="number"?(Number.isInteger(v)?f0(v):String(v)):v}</td>`).join("")}</tr>`};
   const t=`<div class="tlwrap"><table class="cmp"><thead><tr><th></th>${gs.map(g=>`<th class="${g.vendor}">${esc(g.name)}<small>${g.vendor==="amd"?"AMD":"NVIDIA"} · ${esc(g.arch)}</small></th>`).join("")}</tr></thead><tbody>
-   ${row("Memory (GB)",g=>g.mem,true,true,lv("Room to talk"))}
+   ${row("Memory (GB)",g=>g.mem,true,true,lv("kv-cache-memory"))}
    ${row("Memory type",g=>g.hbm,false)}
-   ${row("Bandwidth (TB/s)",g=>g.bw,true,true,lv("Fast chip, slow tokens"))}
+   ${row("Bandwidth (TB/s)",g=>g.bw,true,true,lv("memory-bandwidth"))}
    ${row("BF16 TFLOPS",g=>g.bf16,true,true)}
-   ${row("FP8 TFLOPS",g=>g.fp8,true,true,lv("Two speeds"))}
+   ${row("FP8 TFLOPS",g=>g.fp8,true,true,lv("prefill-decode"))}
    ${row("FP4 TFLOPS",g=>g.fp4||"—",true,true)}
    ${row("Compute blocks",g=>g.vendor==="amd"?`${g.cus} CUs on 8 chiplets`:`${g.sms} SMs on ${g.dies} die${g.dies>1?"s":""}`,false)}
-   ${row("GPU-to-GPU link",g=>g.link,false,true,lv("Meet the HGX board"))}
-   ${row("Power (W)",g=>g.tdp,true,false,lv("Watts per token"))}
+   ${row("GPU-to-GPU link",g=>g.link,false,true,lv("hgx-board"))}
+   ${row("Power (W)",g=>g.tdp,true,false,lv("perf-per-watt"))}
    ${row("Cooling",g=>g.tdp>1000?"liquid":"air or liquid",false)}
-   ${row("Software",g=>g.vendor==="amd"?"ROCm · HIP · RCCL":"CUDA · cuBLAS · NCCL",false,true,lv("Team red"))}
+   ${row("Software",g=>g.vendor==="amd"?"ROCm · HIP · RCCL":"CUDA · cuBLAS · NCCL",false,true,lv("amd-gpus"))}
    ${row("Price here ($/hr)",g=>"$"+f2(g.price),false)}
   </tbody></table></div>`;
   $("#cmpBody").innerHTML=`<p class="map-cap">Peak dense figures from vendor data sheets (sparse figures are 2× and rarely reachable). B200 memory is the usable 180 GB of 192. Hourly prices are this game's illustrative numbers, not quotes. Green marks the best in each row; the L-buttons open the level where that row matters.</p>
@@ -2411,7 +2426,31 @@ function w0bCmd(v,t){const S=G.S;if(S.world!==0)return false;const a=(t[1]||"").
 <script>
 "use strict";
 /* ============ state ============ */
-let progress=store.get("gf-progress-v4",{xp:0,done:{}});if(!progress||typeof progress!=="object"||!progress.done)progress={xp:0,done:{}};
+/* ---- saved progress: best stars per permanent level ID. XP is never stored; it's worked out from stars. ---- */
+const SAVE_KEY="m2m-progress-v1",V4_KEY="gf-progress-v4";
+// FROZEN: the 36 levels in the order gf-progress-v4 numbered them (number 1 = index 0). Never edit or re-sort:
+// it decodes old saves forever, whatever happens to LEVELS later.
+const V4_IDS=["tokens","parameters","moe-experts","attention","attention-heads","generation","kv-cache-basics","quiz-inside-model",
+ "gpu-anatomy","memory-fit","kv-cache-memory","memory-bandwidth","batching","prefill-decode","kv-quantisation","moe-on-gpu","perf-per-watt","gpu-sharing","amd-gpus","gpu-choice","quiz-one-gpu",
+ "software-path","launch-overhead","kernel-fusion","driver-stack","quiz-software-path",
+ "hgx-board","tensor-parallel","nvlink-vs-pcie","tp-vs-replicas","quiz-one-server",
+ "fabric","multi-node","pipeline-parallel","data-parallel","quiz-cluster"];
+const XP_PER_STAR=50,XP_PER_STAR_QUIZ=75; // whole numbers per star, so XP never needs rounding
+const freshProgress=()=>({v:1,stars:{}});
+const validStars=n=>n===1||n===2||n===3;
+function loadProgress(){
+  const p=store.get(SAVE_KEY,null);
+  if(p&&typeof p==="object"&&p.v===1&&p.stars&&typeof p.stars==="object"&&!Array.isArray(p.stars))return p;
+  // No usable new save: convert a v4 save once if there is one. The v4 save itself is never written or deleted (rollback safety).
+  const old=store.get(V4_KEY,null),out=freshProgress();
+  if(old&&typeof old==="object"&&old.done&&typeof old.done==="object"){
+    for(const [k,n] of Object.entries(old.done)){const id=/^\d+$/.test(k)?V4_IDS[Number(k)-1]:undefined;if(id&&validStars(n))out.stars[id]=n}
+    store.set(SAVE_KEY,out)}
+  return out}
+let progress=loadProgress();
+// Entries for IDs not in LEVELS stay in the save untouched (a restored level gets its stars back); they just aren't counted.
+const starsOf=id=>{const n=progress.stars[id];return validStars(n)?n:0};
+const totalXp=()=>LEVELS.reduce((t,l)=>t+starsOf(l.id)*(l.quiz?XP_PER_STAR_QUIZ:XP_PER_STAR),0);
 const G={mode:"home",level:null,S:null,hints:0,won:false,hist:[],hi:0,strip:null,wt:null};
 const OUT=[];
 function freshState(world){
@@ -2550,11 +2589,11 @@ function foundry(t){if(foundryMore(t))return;const S=G.S,sub=(t[0]||"").toLowerC
    case"prompt":if(S.world===2&&!(L.controls||[]).includes("prompt2")){err("Locked in this level: the document is 32,768 tokens.");return}if(setNum("prompt",a,128,262144,"Prompt"))after();return;
    case"bench":if(!needWorld(1))return;bench();return;
    case"status":S.world===1?bench():afterAny();return;
-   case"roofline":case"roof":if(!needWorld(1))return;if(!(L.panels||[]).includes("roof")){err("The roofline opens from level 4 onward, and in the GPU lab.");return}
+   case"roofline":case"roof":if(!needWorld(1))return;if(!(L.panels||[]).includes("roof")){err(refs("The roofline opens from {{lvl:memory-bandwidth}} onward, and in the GPU lab."));return}
      if(a==="off"){S.showRoof=false;print("Roofline hidden.","dim");return}
      S.showRoof=true;S.flags.roof=true;{const M=w1(S);print(M.fits?`Roofline: decode at ${f1(M.I)} FLOPs/byte, ridge at ${f0(M.ridge)}. ${M.I<M.ridge?"Left of the ridge, so memory bandwidth is the limit.":"Right of the ridge, so compute is the limit."}`:"Roofline shown. Nothing is running yet: the model doesn't fit.","dim")}return;
    case"inspect":case"explain":inspect(a);return;
-   case"trace":if(!needWorld(2))return;if(!(L.panels||[]).includes("stack")){err(`The trace view is in World 2, level ${LEVELS.find(l=>l.title==="Follow one matmul").n}, and the kernel lab.`);return}trace();return;
+   case"trace":if(!needWorld(2))return;if(!(L.panels||[]).includes("stack")){err(refs("The trace view is in {{lvl:software-path}} and the kernel lab."));return}trace();return;
    case"graphs":case"cuda-graphs":if(!(L.controls||[]).includes("graphs")&&S.world===2){err("Not part of this level.");return}if(toggle("graphs",a))after();return;
    case"fuse":case"fusion":if(S.world===2&&!(L.controls||[]).includes("fuse")){err("Not part of this level.");return}if(toggle("fuse",a))after();return;
    case"flash":case"flashattention":if(S.world===2&&!(L.controls||[]).includes("flash")){err("Not part of this level.");return}if(toggle("flash",a))after();return;
@@ -2564,7 +2603,7 @@ function foundry(t){if(foundryMore(t))return;const S=G.S,sub=(t[0]||"").toLowerC
    case"help":case"":printHelp();return;
    default:err(`foundry: unknown command "${sub}". Type help.`)}}
 function printHelp(){const w=G.S.world;if(w===0){print(helpW0(),"dim");return}if(w>=3){print(helpMore(w),"dim");return}
-  if(w===1)print(`GPU COMMANDS (World 1)
+  if(w===1)print(refs(`GPU COMMANDS (World 1)
   nvidia-smi                          GPU status, the way operators see it
   foundry status | bench              memory, speed, cost for the current setup
   foundry gpu h100|h200|b200|b300     swap the GPU
@@ -2573,9 +2612,9 @@ function printHelp(){const w=G.S.world;if(w===0){print(helpW0(),"dim");return}if
   foundry batch N                     users served in the same step
   foundry context N                   tokens kept per conversation (8k ok)
   foundry prompt N                    prompt length for time to first token
-  foundry roofline [off]              show the roofline chart (level 4+)
+  foundry roofline [off]              show the roofline chart (from {{lvl:memory-bandwidth}})
   foundry inspect sm|hbm|bandwidth|link
-OTHER   clear   hint   help   ↑/↓ history   chain with &&`,"dim");
+OTHER   clear   hint   help   ↑/↓ history   chain with &&`),"dim");
   else print(`KERNEL COMMANDS (World 2, on an H100)
   nvidia-smi                          driver, CUDA version, GPU-Util
   foundry trace matmul                follow y = x @ W down the stack
@@ -2615,22 +2654,22 @@ function insert(txt){const i=$("#cmd");i.value=txt;try{i.focus();i.setSelectionR
 
 /* ============ game flow ============ */
 const ALL=()=>LEVELS;
-function saveProgress(){store.set("gf-progress-v4",progress);updateXp()}
-function updateXp(){$("#xpNum").textContent=progress.xp;$("#totNum").textContent=LEVELS.length;$("#doneNum").textContent=Object.keys(progress.done).filter(k=>LEVELS.some(l=>String(l.id)===k)).length}
-function nextLevelId(){const l=LEVELS.find(l=>!progress.done[l.id]);return l?l.id:null}
+function saveProgress(){store.set(SAVE_KEY,progress);updateXp()}
+function updateXp(){$("#xpNum").textContent=totalXp();$("#totNum").textContent=LEVELS.length;$("#doneNum").textContent=LEVELS.filter(l=>starsOf(l.id)).length}
+function nextLevelId(){const l=LEVELS.find(l=>!starsOf(l.id));return l?l.id:null}
 function starsHtml(n){return[1,2,3].map(i=>i<=n?"★":'<span class="off">★</span>').join("")}
 function renderHome(){const next=nextLevelId();
   $("#stackMap").innerHTML=LAYERS.map(x=>{const c=STACK_COVER[x.n];return`<div class="${c?c[1]:""}"><span class="num">${String(x.n).padStart(2,"0")}</span><span><b>${esc(x.name)}</b></span><span class="w">${c?c[0]:"later chapters"}</span></div>`}).join("");
-  $("#piers").innerHTML=WORLDS.map(W=>`<section class="pier"><div class="pier-head"><h2>${esc(W.h)}</h2><p>${esc(W.p)}</p></div><div class="levels">${LEVELS.filter(l=>l.world===W.w).map(l=>`<button class="lvl${l.id===next?" next":""}" data-level="${l.id}">${l.id===next?'<span class="badge">Up next</span>':""}<span class="n">${String(l.n).padStart(2,"0")}</span><span class="t">${esc(l.title)}</span><span class="c">${esc(l.concept)}</span><span class="stars">${progress.done[l.id]?starsHtml(progress.done[l.id]):'<span class="off">★★★</span>'}</span></button>`).join("")}${LABS["lab"+W.w]?`<button class="lvl lab" data-level="lab${W.w}"><span class="n">∞</span><span class="t">${LABS["lab"+W.w].title}</span><span class="c">Sandbox: every knob unlocked</span><span class="stars"></span></button>`:""}</div></section>`).join("");
+  $("#piers").innerHTML=WORLDS.map(W=>`<section class="pier"><div class="pier-head"><h2>${esc(W.h)}</h2><p>${esc(W.p)}</p></div><div class="levels">${LEVELS.filter(l=>l.world===W.w).map(l=>`<button class="lvl${l.id===next?" next":""}" data-level="${l.id}">${l.id===next?'<span class="badge">Up next</span>':""}<span class="n">${String(l.n).padStart(2,"0")}</span><span class="t">${esc(l.title)}</span><span class="c">${esc(l.concept)}</span><span class="stars">${starsOf(l.id)?starsHtml(starsOf(l.id)):'<span class="off">★★★</span>'}</span></button>`).join("")}${LABS[W.w]?`<button class="lvl lab" data-level="${LABS[W.w].id}"><span class="n">∞</span><span class="t">${LABS[W.w].title}</span><span class="c">Sandbox: every knob unlocked</span><span class="stars"></span></button>`:""}</div></section>`).join("");
   $("#soon").innerHTML=SOON.map(s=>`<div class="lvl soon" aria-disabled="true"><span class="n">${s.n}</span><span class="t">${esc(s.t)}</span><span class="c">${esc(s.c)}</span><span class="stars"></span></div>`).join("");
-  $("#startBtn").textContent=next?(next===1?"Start level 1":`Continue: level ${next}`):"Replay level 1";updateXp()}
+  $("#startBtn").textContent=next?(next===LEVELS[0].id?"Start level 1":refs(`Continue: {{lvl:${next}}}`)):"Replay level 1";updateXp()}
 function show(mode){G.mode=mode;$("#home").hidden=mode!=="home";$("#game").hidden=mode!=="game";$("#levelsBtn").hidden=mode!=="game";if(mode==="home"){renderHome();clearInterval(flickT)}try{window.scrollTo(0,0)}catch(e){}}
-function getLevel(id){if(LABS[id])return LABS[id];return LEVELS.find(l=>l.id===Number(id))}
+function getLevel(id){return LEVEL_BY_ID.get(id)||Object.values(LABS).find(l=>l.id===id)}
 function loadLevel(id){const L=getLevel(id);if(!L)return;$("#cmpModal").hidden=true;clearTimeout(G.tt);clearTimeout(G.wt);
   G.level=L;G.S=freshState(L.world);if(L.setup)L.setup(G.S);G.hints=0;G.won=false;G.strip=null;OUT.length=0;
   $("#mEyebrow").textContent=L.lab?`Sandbox · World ${L.world}`:`World ${L.world} · Level ${L.n}`;
-  $("#mTitle").textContent=L.title;$("#mConcept").textContent=L.concept;$("#mBrief").innerHTML=L.brief||(L.quiz?`<p>${L.questions.length} questions on what you just did. Pick an answer; wrong picks show why, and you can try again. Fewer mistakes, more stars.</p>`:"");
-  const gl=L.goals||[];$("#goalWrap").hidden=!gl.length;$("#mGoals").innerHTML=gl.map((g,i)=>`<li data-g="${i}">${esc(g.t)}</li>`).join("");
+  $("#mTitle").textContent=L.title;$("#mConcept").textContent=L.concept;$("#mBrief").innerHTML=refs(L.brief)||(L.quiz?`<p>${L.questions.length} questions on what you just did. Pick an answer; wrong picks show why, and you can try again. Fewer mistakes, more stars.</p>`:"");
+  const gl=L.goals||[];$("#goalWrap").hidden=!gl.length;$("#mGoals").innerHTML=gl.map((g,i)=>`<li data-g="${i}">${esc(refs(g.t))}</li>`).join("");
   $("#hintWrap").hidden=!L.answer;$("#mHints").innerHTML="";$("#hintBtn").hidden=false;$("#hintBtn").textContent="Show a hint";
   $("#manual").hidden=true;$("#manualBtn").setAttribute("aria-expanded","false");$("#glossSide").hidden=true;$("#glossBtn").setAttribute("aria-expanded","false");
   const quiz=!!L.quiz;$("#simCard").hidden=quiz;$("#termCard").hidden=quiz;$("#quiz").hidden=!quiz;$("#restartBtn").textContent=quiz?"Restart quiz":"Restart level";$("#manualBtn").hidden=quiz;
@@ -2645,7 +2684,7 @@ function loadLevel(id){const L=getLevel(id);if(!L)return;$("#cmpModal").hidden=t
   show("game");checkGoals()}
 function renderChips(){const L=G.level;$("#chips").innerHTML=(L.chips||[]).map(c=>`<button type="button" data-ins="${esc(c)}">${esc(c)}</button>`).join("")}
 function showHint(){const L=G.level;if(!L.answer)return;const total=L.hints.length+1;if(G.hints>=total)return;G.hints++;const ol=$("#mHints");ol.innerHTML="";
-  L.hints.slice(0,G.hints).forEach(h=>{const li=document.createElement("li");li.textContent=h;ol.appendChild(li)});
+  L.hints.slice(0,G.hints).forEach(h=>{const li=document.createElement("li");li.textContent=refs(h);ol.appendChild(li)});
   if(G.hints===total){const a=L.answer(G.S);const li=document.createElement("li");li.innerHTML=`<div class="answer"><span>Answer:</span> <code>${esc(a)}</code> <button class="btn" type="button" data-ins="${esc(a)}">Use it</button></div>`;ol.appendChild(li);$("#hintBtn").hidden=true}
   else $("#hintBtn").textContent=G.hints===total-1?"Show the answer":"Next hint"}
 const goalOk=(L,S)=>L.goals.map(g=>{try{return!!g.ok(S)}catch(e){return false}});
@@ -2654,12 +2693,12 @@ function checkGoals(){const L=G.level;if(!L||L.quiz||!G.S)return;const res=goalO
   if(G.won||!L.goals.length)return;clearTimeout(G.wt);
   if(res.every(Boolean)){const S=G.S;G.wt=setTimeout(()=>{if(G.level===L&&G.S===S&&!G.won&&goalOk(L,S).every(Boolean))win()},900)}}
 function win(stars){const L=G.level;G.won=true;if(stars===undefined){const total=L.hints.length+1;stars=G.hints===0?3:G.hints<total?2:1}
-  const prev=progress.done[L.id]||0;if(stars>prev){progress.xp+=Math.round(((stars-prev)/3)*(L.quiz?150:100));progress.done[L.id]=stars;saveProgress()}
+  if(stars>starsOf(L.id)){progress.stars[L.id]=stars;saveProgress()} // stars only go up
   $("#dEyebrow").textContent=L.quiz?"Checkpoint complete":`World ${L.world} · Level ${L.n} cleared`;$("#dTitle").textContent=L.title;$("#dStars").innerHTML=starsHtml(stars);
-  $("#dBody").innerHTML=L.debrief+(L.links?`<div class="links"><div><b>↑ Up</b><span>${esc(L.links.up)}</span></div><div><b>↓ Down</b><span>${esc(L.links.down)}</span></div></div>`:"")+(stars<3?`<p style="color:var(--muted);font-size:13px;margin-top:10px">${L.quiz?"Retake with fewer wrong picks for 3 stars.":"Replay without the answer hint for 3 stars."}</p>`:"");
-  const nxt=LEVELS.find(l=>l.id===L.id+1);$("#dNext").hidden=!nxt;if(nxt)$("#dNext").textContent=`Next: ${nxt.title}`;$("#modal").hidden=false;try{$("#dNext").hidden?$("#dStay").focus():$("#dNext").focus()}catch(e){}}
+  $("#dBody").innerHTML=refs(L.debrief)+(L.links?`<div class="links"><div><b>↑ Up</b><span>${esc(refs(L.links.up))}</span></div><div><b>↓ Down</b><span>${esc(refs(L.links.down))}</span></div></div>`:"")+(stars<3?`<p style="color:var(--muted);font-size:13px;margin-top:10px">${L.quiz?"Retake with fewer wrong picks for 3 stars.":"Replay without the answer hint for 3 stars."}</p>`:"");
+  const nxt=L.lab?null:LEVELS[L.idx+1];$("#dNext").hidden=!nxt;if(nxt)$("#dNext").textContent=`Next: ${nxt.title}`;$("#modal").hidden=false;try{$("#dNext").hidden?$("#dStay").focus():$("#dNext").focus()}catch(e){}}
 function renderQuiz(){const L=G.level,st=G.quizState;
-  $("#quiz").innerHTML=L.questions.map((q,i)=>{const done=st.picked[i].includes(q.a);return`<div class="q"><h4>${i+1}. ${esc(q.q)}</h4><div class="opts">${q.o.map((o,j)=>`<button type="button" data-q="${i}" data-o="${j}" class="${st.picked[i].includes(j)?(j===q.a?"right":"wrong"):""}" ${done?"disabled":""}>${esc(o)}</button>`).join("")}</div>${done?`<div class="why">${esc(q.why)}</div>`:st.picked[i].length?`<div class="why">Not quite. Try another answer.</div>`:""}</div>`}).join("");
+  $("#quiz").innerHTML=L.questions.map((q,i)=>{const done=st.picked[i].includes(q.a);return`<div class="q"><h4>${i+1}. ${esc(refs(q.q))}</h4><div class="opts">${q.o.map((o,j)=>`<button type="button" data-q="${i}" data-o="${j}" class="${st.picked[i].includes(j)?(j===q.a?"right":"wrong"):""}" ${done?"disabled":""}>${esc(refs(o))}</button>`).join("")}</div>${done?`<div class="why">${esc(refs(q.why))}</div>`:st.picked[i].length?`<div class="why">Not quite. Try another answer.</div>`:""}</div>`}).join("");
   if(L.questions.every((q,i)=>st.picked[i].includes(q.a))&&!G.won){const m=st.mistakes;setTimeout(()=>win(m===0?3:m<=2?2:1),500)}}
 function renderManual(){const w=G.S?G.S.world:1;if(w===0){$("#manual").innerHTML=manualW0().map(([h,cs])=>`<h4>${h}</h4>`+cs.map(([c,d])=>`<button type="button" data-ins="${esc(c)}">${esc(c)}${d?`<span>${esc(d)}</span>`:""}</button>`).join("")).join("");return}if(w>=3){$("#manual").innerHTML=manualMore(w).map(([h,cs])=>`<h4>${h}</h4>`+cs.map(([c,d])=>`<button type="button" data-ins="${esc(c)}">${esc(c)}${d?`<span>${esc(d)}</span>`:""}</button>`).join("")).join("");return}
   const W1=[["Status",[["nvidia-smi","GPU status"],["foundry status","memory, speed, cost"],["foundry bench","full benchmark"]]],["Hardware",[["foundry gpu h100",""],["foundry gpu h200",""],["foundry gpu b200",""],["foundry gpu b300",""]]],["Model & precision",[["foundry load llama-70b",""],["foundry dtype fp8",""],["foundry dtype int4","weight-only"],["foundry dtype fp4","Blackwell only"]]],["Workload",[["foundry batch 32","users per step"],["foundry context 8192","tokens per conversation"],["foundry prompt 16384","for first-token time"]]],["Look closer",[["foundry roofline",""],["foundry inspect sm",""],["foundry inspect hbm",""]]]];
@@ -2687,20 +2726,20 @@ document.addEventListener("click",e=>{
 $("#cmdForm").addEventListener("submit",e=>{e.preventDefault();const i=$("#cmd");run(i.value);i.value=""});
 $("#cmd").addEventListener("keydown",e=>{if(e.key==="ArrowUp"){if(G.hi>0){G.hi--;e.target.value=G.hist[G.hi]||""}e.preventDefault()}else if(e.key==="ArrowDown"){if(G.hi<G.hist.length){G.hi++;e.target.value=G.hist[G.hi]||""}e.preventDefault()}});
 $("#homeBtn").onclick=()=>show("home");$("#levelsBtn").onclick=()=>show("home");
-$("#startBtn").onclick=()=>loadLevel(nextLevelId()||1);
+$("#startBtn").onclick=()=>loadLevel(nextLevelId()||LEVELS[0].id);
 $("#hintBtn").onclick=showHint;
 $("#restartBtn").onclick=()=>loadLevel(G.level.lab?G.level.id:G.level.id);
 $("#manualBtn").onclick=()=>{const m=$("#manual"),open=m.hidden;if(open)renderManual();m.hidden=!open;$("#manualBtn").setAttribute("aria-expanded",String(open))};
 $("#glossBtn").onclick=()=>{const m=$("#glossSide"),open=m.hidden;if(open)renderGloss(m);m.hidden=!open;$("#glossBtn").setAttribute("aria-expanded",String(open))};
 $("#mathBtn").onclick=()=>setMath(!document.documentElement.classList.contains("math-on"));
-$("#dNext").onclick=()=>{$("#modal").hidden=true;const n=LEVELS.find(l=>l.id===G.level.id+1);if(n)loadLevel(n.id)};
+$("#dNext").onclick=()=>{$("#modal").hidden=true;const n=LEVELS[G.level.idx+1];if(n)loadLevel(n.id)};
 $("#dStay").onclick=()=>{$("#modal").hidden=true};
 $("#dLevels").onclick=()=>{$("#modal").hidden=true;show("home")};
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")$("#modal").hidden=true});
 $("#cmpClose").onclick=()=>{$("#cmpModal").hidden=true};$("#cmpModal").addEventListener("click",e=>{if(e.target.id==="cmpModal")$("#cmpModal").hidden=true});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("#modal").hidden=true;$("#cmpModal").hidden=true}});
 function bindReset(){$("#resetAll").onclick=()=>{$("#resetWrap").innerHTML='<span class="confirm">Erase all stars and XP? <button class="btn" id="resetYes">Erase</button> <button class="btn ghost" id="resetNo">Keep</button></span>';
-  $("#resetYes").onclick=()=>{progress={xp:0,done:{}};saveProgress();restoreReset();renderHome()};$("#resetNo").onclick=restoreReset}}
+  $("#resetYes").onclick=()=>{progress=freshProgress();saveProgress();restoreReset();renderHome()};$("#resetNo").onclick=restoreReset}}
 function restoreReset(){$("#resetWrap").innerHTML='<button class="btn ghost" id="resetAll">Reset progress</button>';bindReset()}
 bindReset();
 renderGloss($("#glossList"));

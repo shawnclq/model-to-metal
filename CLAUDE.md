@@ -16,7 +16,7 @@ The owner is a **product manager** learning this material, not an infrastructure
 ### Naming
 
 - The product is **Model to Metal**: it covers the GenAI stack from inside the model down to the hardware, not just GPUs. Use that name in all user-facing text.
-- Some things still carry the old name on purpose. The simulated terminal command is `foundry` (for example `foundry gpu h200`), the localStorage key is `gf-progress-v4`, and the reference file used to be `gpu-foundry.html`. Don't change the progress key casually: changing it wipes every player's saved progress. Renaming the `foundry` command is optional. If you do it, keep `foundry` as an alias, and update every level's `answer()`, `chips` and brief text.
+- Some things still carry the old name on purpose. The simulated terminal command is `foundry` (for example `foundry gpu h200`), the reference file used to be `gpu-foundry.html`, and the old save key `gf-progress-v4` is still read once to convert old saves (see Saved progress below). Renaming the `foundry` command is optional. If you do it, keep `foundry` as an alias, and update every level's `answer()`, `chips` and brief text.
 
 ## How changes are planned: OpenSpec
 
@@ -37,17 +37,18 @@ The single file is a concatenation of these parts, in this order (see `reference
 | `2-body.html` | Static markup: header (Compare GPUs, Show the math toggle, XP), home screen (hero, stack map, world piers, glossary), game layout (mission panel, stack strip, sim card, terminal), Compare modal, win modal |
 | `3-data.js`, `3b-data.js`, `3c-data.js` | Data: `GPUS` (NVIDIA + AMD), `MODELS`, `DTYPES`, `LAYERS` (the 10-layer stack), `INFO`, `GLOSS` (glossary), `IMAGES`, `DRIVERS`, MIG profiles, `TENANTS`, `SERVERS`, `NETS`, `KVDT` |
 | `4-engine.js`, `4b-engine.js`, `4c-w0.js`, `4d-w0b.js` | Pure calculation: `w1()` single-GPU memory/speed/cost/power; `w2decode`/`w2prefill`; MIG; `w3` multi-GPU; `ncclTable`; `w4serve`/`w4train`; World 0 tokenizer, `paramParts`, attention, generation; `routeToken`/`moeBatch` (MoE); `headsCalc` (attention heads) |
-| `5-levels.js` … `5e-levels.js` | Level definitions, labs, quizzes, `WORLDS`, `SOON`. Later files splice levels into `LEVELS` and renumber |
+| `5-levels.js` … `5e-levels.js` | Level definitions, labs, quizzes, `WORLDS`, `SOON`. Later files splice levels into `LEVELS`, finding anchors with `findLevel(id)` |
+| `5f-catalog.js` | Runs once after all splices: `finaliseLevels()` checks IDs and sets `idx`/`n`, builds `LEVEL_BY_ID`; `refs()` renders `{{lvl:id}}` references |
 | `6-render.js` … `6e-w0b.js` | Rendering: SVG chip, roofline, boards, cluster, World 0 panels, Compare panel, controls (`seg()` button groups) |
 | `7a-more.js`, `7b-w0.js`, `7c-w0b.js` | Terminal commands per world (`smi`, `ibstat`, `ray`, `vllm`, `route`, `heads` …), help and manual text |
-| `7-app.js` | App shell: global `G` state, `freshState`, terminal (`run`, `print`, history), `loadLevel`, goal checking, stars/XP, win modal, quiz, home screen, progress in localStorage (`gf-progress-v4`) |
+| `7-app.js` | App shell: global `G` state, `freshState`, terminal (`run`, `print`, history), `loadLevel`, goal checking, stars/XP, win modal, quiz, home screen, saved progress (`m2m-progress-v1`), XP from stars, one-time v4 conversion (`V4_IDS`) |
 
 Everything is global functions and `const`s in classic `<script>` blocks that share one scope. When modularising, expect implicit cross-file dependencies (for example, `6-render.js` calls `ctrlsW0b` from `7c-w0b.js`).
 
 ### Level shape
 
 ```js
-{ world, title, concept, layers:{on:[…], near:[…]}, panels:[…], controls:[…],
+{ id:"topic-slug", world, title, concept, layers:{on:[…], near:[…]}, panels:[…], controls:[…],
   brief: `<p>HTML</p>`, setup(S){…}, goals:[{t:"text", ok:S=>bool}],
   hints:[…], answer:()=>"cmd && cmd", chips:["cmd", …],
   debrief: `HTML`, links:{up:"…", down:"…"},
@@ -56,8 +57,17 @@ Everything is global functions and `const`s in classic `<script>` blocks that sh
 
 - `panels` decides which sim view renders; `controls` decides which button groups appear.
 - `answer()` is the command sequence that solves the level. The test suite uses it.
-- `id` (global sequence) and `n` (number within its world) are **assigned by position at load time**.
-- Labs (`lab1`–`lab4`) are free-play sandboxes with string IDs.
+- `id` is a **permanent topic slug** (kebab-case, for example `moe-experts`). Never change or reuse one: saved stars are keyed by it. No world or position in it, so a level can move without losing progress.
+- `idx` (position in `LEVELS`) and `n` (number within its world) are worked out by `finaliseLevels()` at load. Use them only for display and "next level", never for saving.
+- Labs (`gpu-lab`, `kernel-lab`, `server-lab`, `cluster-lab`) are free-play sandboxes. `LABS` is keyed by world number; each lab's `id` is its slug. Labs never earn stars.
+- To point at another level in any text, write `{{lvl:<id>}}`. It renders as "World X, Level N" with current numbers. Never hand-write a level number. The test fails on an unknown ID.
+
+### Saved progress
+
+- Key `m2m-progress-v1`, value `{"v":1,"stars":{"<level-id>":1-3}}`. Stars only go up. Unknown IDs are kept but not counted.
+- XP is never stored. It is worked out from stars: 50 per star, 75 per star on checkpoint quizzes.
+- If there is no usable new save, an old `gf-progress-v4` save is converted once using the frozen `V4_IDS` table, and left untouched. Never edit `V4_IDS`.
+- Adding or moving a level no longer needs a new save key.
 
 ### Current content (36 levels plus 4 labs)
 
@@ -109,15 +119,15 @@ The visual style matches the owner's "Kube Harbor" artifact:
 
 ## Testing
 
-- `reference/tests/test2.js` is a jsdom playthrough. It loads the HTML, plays every level using its `answer()`, checks that goals flip from false to true and the level is won, exercises the labs, and runs negative paths (wrong commands, out-of-memory, missing nodes). Run it with `node test2.js path/to/model-to-metal.html`. jsdom has no canvas, so `getContext` errors in the output are expected and harmless.
+- `reference/tests/test2.js` is a jsdom playthrough. It loads the HTML, plays every level using its `answer()`, checks that goals flip from false to true and the level is won, exercises the labs, and runs negative paths (wrong commands, out-of-memory, missing nodes). It also runs pass/fail checks on level IDs, `{{lvl:id}}` references and saved progress (v4 conversion, XP, reset, inserting a level), prints `CHECKS: N passed, M failed`, and exits 1 on any failure. Run it with `node test2.js path/to/model-to-metal.html`. jsdom has no canvas, so `getContext` errors in the output are expected and harmless.
 - Visual checks use Playwright screenshots (`reference/tests/screenshot.mjs`). Check light and dark mode, 1280 px and 390 px widths, and that `document.documentElement.scrollWidth <= innerWidth`.
 - Whatever the code becomes, keep equivalent coverage (a full playthrough plus visual checks) and run it before every commit.
 
 ## Known problems and lessons
 
-- **Level IDs are positional.** Inserting a level renumbers everything, so the progress key was bumped to `gf-progress-v4` each time, which wiped progress. A likely fix is a permanent slug per level (for example `w0-moe`), but this should go through an OpenSpec proposal.
+- **Level IDs used to be positional** (fixed by the `stable-level-ids` change). Inserting a level renumbered everything, so the progress key was bumped each time and wiped progress. Levels now have permanent slugs.
 - **CSS class collisions.** All CSS is global. The MoE expert grid once reused `.xp`, which broke the header XP pill. Scope component styles when modularising.
-- Cross-references in text ("see Level 7") break when levels move. Prefer references by slug that are rendered into "World X, Level N" at runtime.
+- Cross-references in text ("see Level 7") broke when levels moved. Use `{{lvl:id}}` instead (see Level shape).
 - The tokenizer is approximate, and router picks and head roles are seeded pseudo-random. They're illustrative by design.
 
 ## Learning-gaps backlog
