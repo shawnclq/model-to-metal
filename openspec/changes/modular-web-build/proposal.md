@@ -11,7 +11,9 @@ The game is one 2,700-line HTML file, with every function and constant in one sh
   - The core holds the terminal, level runner, goals and stars, progress, home screen, theme and Compare modal. It rarely changes.
   - Each world pack holds its own levels, math, sim panels and terminal commands. Adding a world means adding a pack, without editing the core.
   - Shared reference data (GPUs, models, number formats, glossary) lives in one place that any pack can use.
-- Level content is stored as data, one bundle per world. Later, paid worlds can then be sent from the server only to subscribers, without a rewrite. (This change only prepares for that. It doesn't build paywalls.)
+- Each world is its own code bundle, **loaded on demand** when the player opens that world. The home screen only needs a small list of every level's ID, title and world, so it shows all worlds and stars without loading any of them. Later, paid worlds can then be sent from the server only to subscribers, without a rewrite. (This change only prepares for that. It doesn't build paywalls.)
+- Levels stay as code (their goal checks and setup are small functions), not rewritten as pure data. This keeps the port close to today's behaviour.
+- The build is a normal static website. No single-file version is produced; `reference/` keeps the old single file.
 - Component CSS is scoped, so class names in one pack can't break another. An example of the problem: the MoE grid's `.xp` class once broke the header XP pill.
 - Port the jsdom playthrough test and the Playwright screenshots, and make them pass against the new build before anything else changes.
 - The single file in `reference/` stays as the reference for behaviour until this change is done.

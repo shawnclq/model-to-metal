@@ -1,0 +1,2 @@
+# Written by the recorder / make-plan; formatting them would fight with the tools that write them.
+tests/parity/*.json

@@ -1,0 +1,858 @@
+{
+ "levels": [
+  {
+   "id": "tokens",
+   "world": 0,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "tokenize Hello world",
+    "tokenize Tokenization of 1234567 Singaporean dollars",
+    "tokenize Selamat pagi, apa khabar?"
+   ],
+   "answer": [
+    "tokenize Tokenization of 1234567 Singaporean dollars"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "parameters",
+   "world": 0,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "config llama-8b",
+    "foundry inspect attn",
+    "foundry inspect mlp",
+    "params llama-70b"
+   ],
+   "answer": [
+    "foundry inspect attn",
+    "foundry inspect mlp",
+    "params llama-70b"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "moe-experts",
+   "world": 0,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "route Paris",
+    "route def",
+    "route gracias",
+    "batch 32",
+    "batch 1"
+   ],
+   "answer": [
+    "route Paris",
+    "route gracias",
+    "batch 32"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "attention",
+   "world": 0,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "attend it",
+    "attend tired",
+    "head 2",
+    "attend The"
+   ],
+   "answer": [
+    "attend it",
+    "head 2",
+    "attend The"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "attention-heads",
+   "world": 0,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "qhead 5",
+    "heads mha",
+    "heads gqa",
+    "heads mqa"
+   ],
+   "answer": [
+    "qhead 5",
+    "heads mha",
+    "heads mqa",
+    "heads gqa"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "generation",
+   "world": 0,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "generate step",
+    "generate all",
+    "generate inspect 3",
+    "generate reset"
+   ],
+   "answer": [
+    "generate step",
+    "generate inspect 1",
+    "generate all"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "kv-cache-basics",
+   "world": 0,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "kv off",
+    "kv on",
+    "generate all",
+    "kv per-token llama-70b",
+    "generate reset"
+   ],
+   "answer": [
+    "kv off",
+    "generate all",
+    "kv on",
+    "generate all",
+    "kv per-token llama-70b"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "quiz-inside-model",
+   "world": 0,
+   "lab": false,
+   "quiz": true,
+   "chips": [],
+   "answer": [],
+   "hints": 0,
+   "questions": [
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    }
+   ]
+  },
+  {
+   "id": "gpu-anatomy",
+   "world": 1,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "nvidia-smi",
+    "foundry inspect sm",
+    "foundry inspect hbm",
+    "foundry gpu b200",
+    "foundry status"
+   ],
+   "answer": [
+    "nvidia-smi",
+    "foundry inspect sm",
+    "foundry inspect hbm",
+    "foundry gpu b200"
+   ],
+   "hints": 3,
+   "questions": []
+  },
+  {
+   "id": "memory-fit",
+   "world": 1,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry dtype fp8",
+    "foundry dtype int4",
+    "nvidia-smi"
+   ],
+   "answer": [
+    "foundry dtype fp8"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "kv-cache-memory",
+   "world": 1,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry gpu h200",
+    "foundry gpu b200",
+    "foundry dtype int4"
+   ],
+   "answer": [
+    "foundry gpu h200"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "memory-bandwidth",
+   "world": 1,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry bench",
+    "foundry roofline",
+    "foundry gpu h200",
+    "nvidia-smi"
+   ],
+   "answer": [
+    "foundry gpu h200",
+    "foundry roofline"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "batching",
+   "world": 1,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry batch 8",
+    "foundry batch 32",
+    "foundry batch 128",
+    "foundry roofline"
+   ],
+   "answer": [
+    "foundry batch 32"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "prefill-decode",
+   "world": 1,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry gpu h200",
+    "foundry gpu b200",
+    "foundry dtype int4",
+    "foundry roofline"
+   ],
+   "answer": [
+    "foundry gpu b200"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "kv-quantisation",
+   "world": 1,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry kv fp8",
+    "foundry dtype int4"
+   ],
+   "answer": [
+    "foundry kv fp8"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "moe-on-gpu",
+   "world": 1,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry load qwen-235b",
+    "foundry gpu b300",
+    "foundry batch 32",
+    "foundry batch 4"
+   ],
+   "answer": [
+    "foundry load qwen-235b",
+    "foundry gpu b300",
+    "foundry batch 32",
+    "foundry batch 4"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "perf-per-watt",
+   "world": 1,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry gpu b200",
+    "foundry gpu b300",
+    "foundry dtype fp4"
+   ],
+   "answer": [
+    "foundry gpu b200"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "gpu-sharing",
+   "world": 1,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "nvidia-smi",
+    "sudo nvidia-smi -i 0 -mig 1",
+    "nvidia-smi mig -lgip",
+    "nvidia-smi mig -cgi 1g.10gb,1g.10gb -C",
+    "foundry share timeslice"
+   ],
+   "answer": [
+    "sudo nvidia-smi -i 0 -mig 1",
+    "nvidia-smi mig -cgi 2g.20gb,2g.20gb,1g.10gb,1g.10gb,1g.10gb -C"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "amd-gpus",
+   "world": 1,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry gpu mi300x",
+    "foundry gpu mi325x",
+    "amd-smi",
+    "nvidia-smi"
+   ],
+   "answer": [
+    "foundry gpu mi300x",
+    "amd-smi"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "gpu-choice",
+   "world": 1,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry workload chat",
+    "foundry workload doc",
+    "foundry workload moe",
+    "foundry pick",
+    "foundry status"
+   ],
+   "answer": [
+    "foundry workload chat",
+    "foundry gpu mi300x",
+    "foundry pick",
+    "foundry workload doc",
+    "foundry gpu b200",
+    "foundry pick",
+    "foundry workload moe",
+    "foundry gpu mi355x",
+    "foundry pick"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "quiz-one-gpu",
+   "world": 1,
+   "lab": false,
+   "quiz": true,
+   "chips": [],
+   "answer": [],
+   "hints": 0,
+   "questions": [
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    }
+   ]
+  },
+  {
+   "id": "software-path",
+   "world": 2,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry trace matmul",
+    "foundry inspect libraries",
+    "foundry inspect driver",
+    "nvidia-smi"
+   ],
+   "answer": [
+    "foundry trace matmul",
+    "foundry inspect libraries",
+    "foundry inspect driver"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "launch-overhead",
+   "world": 2,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry profile",
+    "foundry load llama-8b",
+    "foundry fuse on",
+    "foundry graphs on",
+    "nvidia-smi"
+   ],
+   "answer": [
+    "foundry load llama-8b",
+    "foundry load llama-1b",
+    "foundry graphs on"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "kernel-fusion",
+   "world": 2,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry profile",
+    "foundry flash on",
+    "foundry fuse on",
+    "foundry graphs on"
+   ],
+   "answer": [
+    "foundry flash on",
+    "foundry profile"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "driver-stack",
+   "world": 2,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "nvidia-smi",
+    "docker images",
+    "docker run --gpus all llm:cuda13.0",
+    "docker run --gpus all llm:cuda12.4",
+    "sudo apt install nvidia-driver-580"
+   ],
+   "answer": [
+    "nvidia-smi",
+    "docker run --gpus all llm:cuda12.4"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "quiz-software-path",
+   "world": 2,
+   "lab": false,
+   "quiz": true,
+   "chips": [],
+   "answer": [],
+   "hints": 0,
+   "questions": [
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 0
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    }
+   ]
+  },
+  {
+   "id": "hgx-board",
+   "world": 3,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "nvidia-smi topo -m",
+    "all_reduce_perf -b 8 -e 8G -f 16 -g 8",
+    "foundry inspect nvswitch",
+    "nvidia-smi"
+   ],
+   "answer": [
+    "nvidia-smi topo -m",
+    "foundry inspect nvswitch",
+    "all_reduce_perf -b 8 -e 8G -f 16 -g 8"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "tensor-parallel",
+   "world": 3,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry tp 4",
+    "foundry tp 8",
+    "nvidia-smi"
+   ],
+   "answer": [
+    "foundry tp 8"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "nvlink-vs-pcie",
+   "world": 3,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry server hgx",
+    "all_reduce_perf -b 8 -e 8G -f 16 -g 8",
+    "nvidia-smi topo -m"
+   ],
+   "answer": [
+    "foundry server hgx"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "tp-vs-replicas",
+   "world": 3,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry tp 2",
+    "foundry tp 4",
+    "foundry tp 8",
+    "foundry batch 128"
+   ],
+   "answer": [
+    "foundry tp 8",
+    "foundry batch 128"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "quiz-one-server",
+   "world": 3,
+   "lab": false,
+   "quiz": true,
+   "chips": [],
+   "answer": [],
+   "hints": 0,
+   "questions": [
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 2
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    }
+   ]
+  },
+  {
+   "id": "fabric",
+   "world": 4,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "ibstat",
+    "ib_write_bw node-2",
+    "foundry inspect nic",
+    "foundry inspect leaf",
+    "foundry inspect spine"
+   ],
+   "answer": [
+    "ibstat",
+    "ib_write_bw node-2",
+    "foundry inspect nic",
+    "foundry inspect leaf"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "multi-node",
+   "world": 4,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "ray start --head --port=6379",
+    "ssh node-2",
+    "ray start --address=node-1:6379",
+    "exit",
+    "ray status",
+    "vllm serve meta-llama/Llama-3.1-405B-Instruct --tensor-parallel-size 8 --pipeline-parallel-size 2 --distributed-executor-backend ray"
+   ],
+   "answer": [
+    "ray start --head --port=6379",
+    "ssh node-2",
+    "ray start --address=node-1:6379",
+    "exit",
+    "ray status",
+    "vllm serve meta-llama/Llama-3.1-405B-Instruct --tensor-parallel-size 8 --pipeline-parallel-size 2 --distributed-executor-backend ray"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "pipeline-parallel",
+   "world": 4,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry layout 8x2",
+    "foundry layout 4x4",
+    "foundry layout 16x1"
+   ],
+   "answer": [
+    "vllm serve meta-llama/Llama-3.1-405B-Instruct --tensor-parallel-size 8 --pipeline-parallel-size 2 --distributed-executor-backend ray"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "data-parallel",
+   "world": 4,
+   "lab": false,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry net ib",
+    "foundry net roce",
+    "foundry gdr on",
+    "foundry nodes 2"
+   ],
+   "answer": [
+    "foundry net ib",
+    "foundry gdr on"
+   ],
+   "hints": 2,
+   "questions": []
+  },
+  {
+   "id": "quiz-cluster",
+   "world": 4,
+   "lab": false,
+   "quiz": true,
+   "chips": [],
+   "answer": [],
+   "hints": 0,
+   "questions": [
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    },
+    {
+     "options": 4,
+     "right": 1
+    }
+   ]
+  }
+ ],
+ "labs": [
+  {
+   "id": "gpu-lab",
+   "world": 1,
+   "lab": true,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry bench",
+    "foundry roofline",
+    "nvidia-smi",
+    "foundry load llama-405b",
+    "foundry gpu b300"
+   ],
+   "answer": [],
+   "hints": 0,
+   "questions": []
+  },
+  {
+   "id": "kernel-lab",
+   "world": 2,
+   "lab": true,
+   "quiz": false,
+   "chips": [
+    "foundry profile",
+    "foundry trace matmul",
+    "foundry mode prefill",
+    "foundry graphs on",
+    "nvidia-smi"
+   ],
+   "answer": [],
+   "hints": 0,
+   "questions": []
+  },
+  {
+   "id": "server-lab",
+   "world": 3,
+   "lab": true,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "foundry server hgxb200",
+    "foundry server mi300x",
+    "nvidia-smi topo -m",
+    "all_reduce_perf -b 8 -e 8G -f 16 -g 8"
+   ],
+   "answer": [],
+   "hints": 0,
+   "questions": []
+  },
+  {
+   "id": "cluster-lab",
+   "world": 4,
+   "lab": true,
+   "quiz": false,
+   "chips": [
+    "foundry status",
+    "ray status",
+    "ibstat",
+    "foundry mode train",
+    "foundry net roce"
+   ],
+   "answer": [],
+   "hints": 0,
+   "questions": []
+  }
+ ]
+}

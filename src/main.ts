@@ -1,0 +1,22 @@
+// Pass-1 entry: load the ported parts in the same order the single file ran them.
+import "./legacy/styles.css";
+import "./legacy/3-data.ts";
+import "./legacy/3b-data.ts";
+import "./legacy/4b-engine.ts";
+import "./legacy/4c-w0.ts";
+import "./legacy/4d-w0b.ts";
+import "./legacy/5-levels.ts";
+import "./legacy/5b-levels.ts";
+import "./legacy/5c-levels.ts";
+import "./legacy/5d-levels.ts";
+import "./legacy/5e-levels.ts";
+import "./legacy/5f-catalog.ts";
+import "./legacy/6-render.ts";
+import "./legacy/6b-render.ts";
+import "./legacy/6c-render.ts";
+import "./legacy/6d-w0.ts";
+import "./legacy/6e-w0b.ts";
+import "./legacy/7a-more.ts";
+import "./legacy/7b-w0.ts";
+import "./legacy/7c-w0b.ts";
+import "./legacy/7-app.ts";
