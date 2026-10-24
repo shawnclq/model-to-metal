@@ -1,4 +1,4 @@
-import type { Gpu, Server } from "./types.ts";
+import type { Gpu, Net, Server } from "./types.ts";
 // GPU spec sheets (peak dense figures from vendor data sheets; prices are illustrative), 8-GPU servers, drivers.
 export const GPUS: Record<string, Gpu> = {
   h100: {
@@ -225,4 +225,38 @@ export const DRIVERS: Record<number, { full: string; cuda: string }> = {
   550: { full: "550.163.01", cuda: "12.4" },
   570: { full: "570.172.08", cuda: "12.8" },
   580: { full: "580.95.05", cuda: "13.0" },
+};
+
+/* Cluster networks (World 4). */
+export const NETS: Record<string, Net> = {
+  ib: {
+    key: "ib",
+    name: "InfiniBand NDR",
+    s: "8 × 400 Gb/s",
+    perGPU: 50e9,
+    eff: 0.9,
+    lat: 5e-6,
+    rdma: true,
+    d: "InfiniBand NDR, one 400 Gb/s ConnectX-7 NIC per GPU ('rails'), RDMA",
+  },
+  roce: {
+    key: "roce",
+    name: "Ethernet RoCE",
+    s: "8 × 400 Gb/s",
+    perGPU: 50e9,
+    eff: 0.8,
+    lat: 8e-6,
+    rdma: true,
+    d: "400 GbE with RDMA over Converged Ethernet (RoCE v2), one NIC per GPU",
+  },
+  eth: {
+    key: "eth",
+    name: "Ethernet 100G",
+    s: "1 × 100 Gb/s",
+    perGPU: 12.5e9 / 8,
+    eff: 0.7,
+    lat: 40e-6,
+    rdma: false,
+    d: "one 100 GbE NIC per server shared by all 8 GPUs, plain TCP, no RDMA",
+  },
 };

@@ -5,27 +5,38 @@
 // so saving and reloading can be tested exactly like a player reloading the page.
 import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const INDEX = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
 const NEW = "m2m-progress-v1";
 const V4 = "gf-progress-v4";
 
-type App = typeof import("../../src/legacy/7-app.ts");
-type Catalog = typeof import("../../src/legacy/5f-catalog.ts");
-type Levels = typeof import("../../src/legacy/5-levels.ts");
+type App = typeof import("../../src/core/levels.ts") &
+  typeof import("../../src/core/state.ts") &
+  typeof import("../../src/core/terminal.ts") &
+  typeof import("../../src/core/home.ts") &
+  typeof import("../../src/core/progress.ts");
+type Catalog = typeof import("../../src/core/catalog.ts");
+type Manifest = typeof import("../../src/core/manifest.ts");
 interface Page {
   dom: JSDOM;
   app: App;
   catalog: Catalog;
-  levels: Levels;
+  manifest: Manifest;
   $: (s: string) => HTMLElement;
   storage: () => Record<string, string | null>;
 }
 
 const GLOBALS = ["window", "document", "localStorage", "HTMLElement", "Element"] as const;
 const saved = Object.fromEntries(GLOBALS.map((k) => [k, Object.getOwnPropertyDescriptor(globalThis, k)]));
+// The game starts timers (the chip flicker, animations). On a fake clock they never fire after a test has
+// finished and its page is gone; on the real clock a late tick can fail the run on a slow machine (CI).
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] });
+});
 afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
   for (const k of GLOBALS) {
     const d = saved[k];
     if (d) Object.defineProperty(globalThis, k, d);
@@ -56,11 +67,18 @@ async function boot(seed?: Record<string, string>, opts: { blockStorage?: boolea
   });
   vi.resetModules(); // a fresh copy of every module, like a page reload
   await import("../../src/main.ts");
-  const app = await import("../../src/legacy/7-app.ts");
-  const catalog = await import("../../src/legacy/5f-catalog.ts");
-  const levels = await import("../../src/legacy/5-levels.ts");
+  // The game's functions now live in several core modules; gather the ones these checks use.
+  const app = {
+    ...(await import("../../src/core/levels.ts")),
+    ...(await import("../../src/core/state.ts")),
+    ...(await import("../../src/core/terminal.ts")),
+    ...(await import("../../src/core/home.ts")),
+    ...(await import("../../src/core/progress.ts")),
+  } as App;
+  const catalog = await import("../../src/core/catalog.ts");
+  const manifest = await import("../../src/core/manifest.ts");
   const storage = () => ({ [NEW]: w.localStorage.getItem(NEW), [V4]: w.localStorage.getItem(V4) });
-  return { dom, app, catalog, levels, $: (s) => w.document.querySelector<HTMLElement>(s)!, storage };
+  return { dom, app, catalog, manifest, $: (s) => w.document.querySelector<HTMLElement>(s)!, storage };
 }
 
 const xp = (p: Page) => Number(p.$("#xpNum").textContent);
@@ -76,24 +94,30 @@ const shown = (p: Page, id: string) => {
 describe("level catalog", () => {
   it("every level and lab ID is a kebab-case slug, and IDs are unique", async () => {
     const p = await boot();
-    const ids = [...p.levels.LEVELS, ...Object.values(p.levels.LABS)].map((l) => l.id);
+    const ids = p.manifest.MANIFEST.flatMap((W) => [...W.levels.map((l) => l.id), ...(W.lab ? [W.lab.id] : [])]);
     expect(ids.filter((id) => !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id))).toEqual([]);
     expect(new Set(ids).size).toBe(ids.length);
   });
   it("display numbers restart at 1 in each world, and idx is the list position", async () => {
     const p = await boot();
-    for (const W of p.levels.WORLDS)
-      p.levels.LEVELS.filter((l) => l.world === W.w).forEach((l, i) => expect(l.n).toBe(i + 1));
-    p.levels.LEVELS.forEach((l, i) => expect(l.idx).toBe(i));
+    for (const W of p.manifest.MANIFEST)
+      p.catalog.CATALOG.filter((l) => l.world === W.world).forEach((l, i) => expect(l.n).toBe(i + 1));
+    p.catalog.CATALOG.forEach((l, i) => expect(l.idx).toBe(i));
+    // the full level objects carry the same numbers
+    p.app
+      .allLevels()
+      .forEach((l) =>
+        expect([l.idx, l.n]).toEqual([p.catalog.LEVEL_BY_ID.get(l.id)!.idx, p.catalog.LEVEL_BY_ID.get(l.id)!.n]),
+      );
   });
   it("a duplicate ID stops loading with a clear error", async () => {
     const p = await boot();
-    p.levels.LEVELS.push({ ...p.levels.LEVELS[12], id: "tokens" });
+    p.manifest.MANIFEST[1].levels.push({ ...p.manifest.MANIFEST[1].levels[4], id: "tokens" });
     expect(() => p.catalog.finaliseLevels()).toThrow(/Duplicate ID "tokens"/);
   });
   it("a badly formed ID stops loading with a clear error", async () => {
     const p = await boot();
-    p.levels.LEVELS[12].id = "Fill The Factory";
+    p.manifest.MANIFEST[1].levels[4].id = "Fill The Factory";
     expect(() => p.catalog.finaliseLevels()).toThrow(/badly formed ID: "Fill The Factory"/);
   });
 });
@@ -114,13 +138,13 @@ describe("level references", () => {
       if (Array.isArray(v)) v.forEach((x) => walk(x, id));
       else if (v && typeof v === "object") Object.values(v).forEach((x) => walk(x, id));
     };
-    [...p.levels.LEVELS, ...Object.values(p.levels.LABS)].forEach((l) => walk(l, l.id));
+    [...p.app.allLevels(), ...p.app.allLabs()].forEach((l) => walk(l, l.id));
     expect(bad).toEqual([]);
   });
   it("no raw {{lvl: token reaches the page, in any level, hint, quiz or debrief", async () => {
     const p = await boot();
     const left: string[] = [];
-    for (const L of p.levels.LEVELS) {
+    for (const L of p.app.allLevels()) {
       p.app.loadLevel(L.id);
       if (!L.quiz) while (!p.$("#hintBtn").hidden) p.app.showHint();
       p.app.win(3);
@@ -167,13 +191,13 @@ describe("navigation", () => {
     expect(p.$("#dNext").textContent).toBe("Next: Meet the chip");
     p.$("#dNext").click();
     expect(p.app.G.level?.id).toBe("gpu-anatomy");
-    p.app.loadLevel(p.levels.LEVELS[p.levels.LEVELS.length - 1].id);
+    p.app.loadLevel(p.app.allLevels()[p.app.allLevels().length - 1].id);
     p.app.win(3);
     expect(p.$("#dNext").hidden).toBe(true);
   });
   it("Compare panel links use real IDs and current numbers", async () => {
     const p = await boot();
-    (await import("../../src/legacy/6c-render.ts")).renderCompare();
+    (await import("../../src/core/compare.ts")).renderCompare();
     const links = [...p.dom.window.document.querySelectorAll<HTMLElement>("#cmpBody .lvlink")];
     expect(links.length).toBe(6);
     for (const b of links) {
@@ -208,7 +232,7 @@ describe("saved progress", () => {
   });
   it("V4_IDS matches today's level order", async () => {
     const p = await boot();
-    expect(p.app.V4_IDS).toEqual(p.levels.LEVELS.map((l) => l.id));
+    expect(p.app.V4_IDS).toEqual(p.catalog.CATALOG.map((l) => l.id));
   });
   it("XP is 50 a star, 75 a star on quizzes (spec example: 350)", async () => {
     const p = await boot({ [NEW]: '{"v":1,"stars":{"gpu-anatomy":3,"memory-fit":1,"quiz-one-gpu":2}}' });
@@ -256,12 +280,64 @@ describe("saved progress", () => {
   });
   it("inserting a level keeps everyone's stars and shifts display numbers only", async () => {
     const p = await boot({ [NEW]: '{"v":1,"stars":{"tokens":3,"gpu-anatomy":2,"quiz-cluster":1}}' });
-    p.levels.LEVELS.splice(1, 0, { ...p.levels.LEVELS[1], id: "dummy-level", title: "Dummy" });
+    p.manifest.MANIFEST[0].levels.splice(1, 0, { id: "dummy-level", title: "Dummy", concept: "test" });
     p.catalog.finaliseLevels();
     p.app.show("home");
     expect([shown(p, "tokens"), shown(p, "gpu-anatomy"), shown(p, "quiz-cluster"), shown(p, "dummy-level")]).toEqual([
       3, 2, 1, 0,
     ]);
     expect(p.catalog.LEVEL_BY_ID.get("parameters")!.n).toBe(3);
+  });
+});
+
+describe("manifest", () => {
+  it("every world's levels match its manifest entry", async () => {
+    const p = await boot();
+    for (const W of p.manifest.MANIFEST)
+      expect(
+        p.catalog.levelMismatches(
+          W.world,
+          p.app.allLevels().filter((l) => l.world === W.world),
+        ),
+      ).toEqual([]);
+  });
+  it("a mismatch is named by world and level: missing, extra, renamed, reordered, quiz flag", async () => {
+    const p = await boot();
+    const w1 = () =>
+      p.app
+        .allLevels()
+        .filter((l) => l.world === 1)
+        .map((l) => ({ ...l }));
+    const missing = w1().filter((l) => l.id !== "batching");
+    expect(p.catalog.levelMismatches(1, missing)).toEqual([
+      'World 1: level "batching" is in the manifest but not in the pack',
+    ]);
+    const extra = [...w1(), { id: "extra-level", title: "Extra", concept: "x" }];
+    expect(p.catalog.levelMismatches(1, extra)).toEqual([
+      'World 1: level "extra-level" is in the pack but not in the manifest',
+    ]);
+    const renamed = w1();
+    renamed[0].title = "Meet the GPU";
+    expect(p.catalog.levelMismatches(1, renamed)).toEqual([
+      'World 1: level "gpu-anatomy" is titled "Meet the GPU" but "Meet the chip" in the manifest',
+    ]);
+    const reordered = w1();
+    [reordered[0], reordered[1]] = [reordered[1], reordered[0]];
+    expect(p.catalog.levelMismatches(1, reordered)[0]).toMatch(/^World 1: levels are in a different order/);
+    const quiz = w1();
+    quiz[0].quiz = true;
+    expect(p.catalog.levelMismatches(1, quiz)).toEqual(['World 1: level "gpu-anatomy" is a quiz, unlike the manifest']);
+  });
+  it("loading stops with a clear error when a world's levels don't match", async () => {
+    const p = await boot();
+    expect(() =>
+      p.catalog.attachLevels(
+        1,
+        p.app
+          .allLevels()
+          .filter((l) => l.world === 1)
+          .slice(1),
+      ),
+    ).toThrow(/World 1: level "gpu-anatomy" is in the manifest but not in the pack/);
   });
 });

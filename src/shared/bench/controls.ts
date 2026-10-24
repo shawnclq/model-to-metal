@@ -13,6 +13,10 @@ export type BenchView = GpuSetup & { world: number; kvdt: string };
 export interface BenchLevel {
   gpus?: string[];
 }
+/** The worlds whose state has a GPU bench (the bench controls appear only in their levels). */
+export function hasBench(S: { world: number }): S is BenchView {
+  return S.world === 1 || S.world === 3 || S.world === 4;
+}
 export type BenchControl = "gpu" | "model" | "kv" | "dtype" | "batch" | "ctx" | "prompt";
 
 export const BENCH_CONTROLS: Record<BenchControl, (S: BenchView, L: BenchLevel, lk: Record<string, string>) => string> =

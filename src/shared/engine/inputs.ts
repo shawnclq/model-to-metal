@@ -34,3 +34,18 @@ export interface ServerSetup {
   ctx: number;
   prompt: number;
 }
+
+/** Several 8-GPU servers on a network, serving one model with TP × PP (World 4; also nvidia-smi on a node). */
+export interface ClusterSetup {
+  model: string;
+  dtype: string;
+  kvdt?: string;
+  tp: number;
+  pp: number;
+  batch: number;
+  ctx: number;
+  prompt: number;
+  nodes: number;
+  net: string;
+  gdr: boolean;
+}

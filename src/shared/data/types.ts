@@ -93,3 +93,15 @@ export interface Server {
   gpu?: string;
   mesh?: boolean;
 }
+
+/** A cluster network: bandwidth per GPU, efficiency, latency, whether it does RDMA. */
+export interface Net {
+  key: string;
+  name: string;
+  s: string;
+  perGPU: number;
+  eff: number;
+  lat: number;
+  rdma: boolean;
+  d: string;
+}

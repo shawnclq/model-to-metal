@@ -1,3 +1,4 @@
+import type { W1State, W2State, W3State, W4State } from "../../core/types.ts";
 import { f0, f1, f2, parseNum } from "../data/format.ts";
 import { GPUS, GPU_ORDER, NV_GPUS } from "../data/hardware.ts";
 import { DTYPES, MODELS, MODEL_ALIAS } from "../data/models.ts";
@@ -76,14 +77,16 @@ export function setDtype(v: string | undefined) {
   S.dtype = v;
   return true;
 }
+/** Worlds whose bench has users, context and prompt length. */
+export type NumState = W1State | W2State | W3State | W4State;
 export function setNum(
+  S: NumState,
   key: "batch" | "ctx" | "prompt",
   v: string | undefined,
   min: number,
   max: number,
   label: string,
 ) {
-  const S = host.G.S!;
   const n = parseNum(v);
   if (!isFinite(n) || n < min || n > max) {
     host.err(`${label} must be a number from ${f0(min)} to ${f0(max)}${key !== "batch" ? " (you can write 8k)" : ""}.`);

@@ -1,18 +1,19 @@
-import { MIGP, MIG_ID } from "../../legacy/3b-data.ts";
-import { migAssign, migCheck, w4serve } from "../../legacy/4b-engine.ts";
+import { w4serve } from "../engine/cluster.ts";
 import { f1, lpad, pad } from "../data/format.ts";
 import { DRIVERS, GPUS, SERVERS } from "../data/hardware.ts";
 import { w1 } from "../engine/gpu.ts";
 import { w2decode, w2prefill, w2used } from "../engine/kernels.ts";
 import { w3 } from "../engine/server.ts";
 import { host } from "../host.ts";
+import type { W3State, W4State } from "../../core/types.ts";
+import type { KernelSetup } from "../engine/inputs.ts";
 // nvidia-smi and amd-smi as each world's bench sees them: one GPU (Worlds 0–2), an 8-GPU server or a
 // cluster node (Worlds 3–4), MIG partitions (World 1), and AMD Instinct boards (Worlds 1 and 3).
 export function smi() {
   const S = host.G.S!;
   host.G.S!.flags.smi = true;
-  if (S.world >= 3) {
-    smiMulti();
+  if (S.world === 3 || S.world === 4) {
+    smiMulti(S);
     return;
   }
   const drv = S.world === 2 ? DRIVERS[S.driver] : DRIVERS[580];
@@ -34,8 +35,11 @@ export function smi() {
       util = 0;
       pw = 72;
     } else {
-      usedMiB = Math.round((w2used(S) * 1e9) / 1048576);
-      const b = S.mode === "prefill" ? (w2prefill(S).oom ? 0 : 0.99) : w2decode(S).busy;
+      // World 2's GPU. In World 0 the single file ran this same path on World 0's state, which lacks the
+      // fields it reads, so World 0's nvidia-smi shows NaN. KNOWN BUG kept for parity (see design.md).
+      const K = S as unknown as KernelSetup;
+      usedMiB = Math.round((w2used(K) * 1e9) / 1048576);
+      const b = K.mode === "prefill" ? (w2prefill(K).oom ? 0 : 0.99) : w2decode(K).busy;
       util = Math.round(b * 100);
       pw = Math.round(700 * (0.12 + 0.6 * b));
     }
@@ -93,121 +97,25 @@ export function smiCmd(args: string[]) {
     return;
   }
   if (/^topo\b/.test(a)) {
-    if (S.world < 3) {
+    if (S.world !== 3 && S.world !== 4) {
       host.err("This bench has one GPU. Topology matters from World 3.");
       return;
     }
-    topo();
+    topo(S);
     return;
   }
-  const mm = a.match(/-mig\s+([01])/);
-  if (mm && !/^mig\b/.test(a)) {
+  // MIG commands: outside the MIG level, a fixed answer; in it, the open world (World 1) handles them.
+  if ((/-mig\s+([01])/.test(a) && !/^mig\b/.test(a)) || /^mig\b/.test(a)) {
     if (!host.G.level!.panels!.includes("mig")) {
       host.err("MIG is in the 'Share the GPU' level.");
       return;
     }
-    const on = mm[1] === "1";
-    S.mig.mode = on;
-    S.mig.inst = [];
-    if (on) S.mig.share = "none";
-    host.print(
-      on
-        ? "Enabled MIG Mode for GPU 00000000:18:00.0\nAll done."
-        : "Disabled MIG Mode for GPU 00000000:18:00.0\nAll done.",
-    );
-    return;
-  }
-  if (/^mig\b/.test(a)) {
-    if (!host.G.level!.panels!.includes("mig")) {
-      host.err("MIG is in the 'Share the GPU' level.");
-      return;
-    }
-    if (!S.mig.mode) {
-      host.err("Unable to create GPU instance: MIG mode is not enabled. Run: sudo nvidia-smi -i 0 -mig 1");
-      return;
-    }
-    if (/-lgip/.test(a)) {
-      host.print(
-        "GPU instance profiles (GPU 0, H100 80GB):\n  " +
-          pad("Name", 10) +
-          pad("ID", 5) +
-          pad("Compute", 9) +
-          pad("Memory", 8) +
-          "Max\n" +
-          Object.entries(MIGP)
-            .map(
-              ([k, v]) =>
-                "  " +
-                pad(k, 10) +
-                pad(v.id, 5) +
-                pad(v.c + "/7", 9) +
-                pad(v.gb + " GB", 8) +
-                Math.floor(Math.min(7 / v.c, 8 / v.m)),
-            )
-            .join("\n"),
-      );
-      return;
-    }
-    if (/-lgi\b/.test(a)) {
-      host.print(
-        S.mig.inst.length
-          ? S.mig.inst.map((p, i) => `  GPU 0  instance ${i}  ${p}  (profile ${MIGP[p].id})`).join("\n")
-          : "No GPU instances found.",
-      );
-      return;
-    }
-    if (/-dci|-dgi/.test(a)) {
-      S.mig.inst = [];
-      S.mig.share = "none";
-      host.print("Destroyed all compute and GPU instances on GPU 0.");
-      return;
-    }
-    const ci = args.indexOf("-cgi");
-    if (ci >= 0) {
-      const list = (args[ci + 1] || "")
-        .split(",")
-        .filter(Boolean)
-        .map((x: string) => MIG_ID[x] || x);
-      const ck = migCheck(list);
-      if (!list.length) {
-        host.err("-cgi needs a comma-separated list of profiles, e.g. 1g.10gb,2g.20gb");
-        return;
-      }
-      if (!ck.ok) {
-        host.err(`Unable to create GPU instances: ${ck.why}.`);
-        return;
-      }
-      S.mig.inst = list;
-      S.mig.share = "mig";
-      host.print(
-        list
-          .map(
-            (p: string, i: number) =>
-              `Successfully created GPU instance ID ${i} on GPU 0 using profile MIG ${p} (ID ${MIGP[p].id})`,
-          )
-          .join("\n") +
-          (args.includes("-C")
-            ? `\nCreated ${list.length} compute instance${list.length > 1 ? "s" : ""}.`
-            : "\n(add -C to create compute instances too; done for you here)"),
-      );
-      const A = migAssign(S);
-      A.res.forEach((r) =>
-        host.print(
-          r.inst
-            ? `  ${pad(r.t.n, 14)} → ${r.inst.p} #${r.inst.i}`
-            : `  ${pad(r.t.n, 14)} → no instance with ${r.t.need} GB left`,
-          r.inst ? "ok" : "err",
-        ),
-      );
-      return;
-    }
-    host.err("Try: nvidia-smi mig -lgip | -cgi PROFILES -C | -lgi | -dci");
+    host.worldSmi(args);
     return;
   }
   smi();
 }
-export function smiMulti() {
-  const S = host.G.S!;
+export function smiMulti(S: W3State | W4State) {
   const drv = DRIVERS[580];
   let used = 0,
     util = 0;
@@ -239,8 +147,7 @@ export function smiMulti() {
         .join("\n"),
   );
 }
-export function topo() {
-  const S = host.G.S!;
+export function topo(S: W3State | W4State) {
   host.G.S!.flags.topo = true;
   const hgx = S.world === 4 || S.srv === "hgx" || S.srv === "hgxb200";
   const cell = (i: number, j: number) =>
@@ -276,7 +183,8 @@ export function topo() {
 export function amdSmi(v: string, args: string[]) {
   const S = host.G.S!;
   const g = S.world === 1 ? GPUS[S.gpu] : S.world === 3 ? GPUS[SERVERS[S.srv].gpu!] : null;
-  if (!g || g.vendor !== "amd") {
+  // (Only Worlds 1 and 3 have a GPU here; the world test is for the type checker, g is null elsewhere.)
+  if (!g || g.vendor !== "amd" || (S.world !== 1 && S.world !== 3)) {
     host.err(`${v}: no AMD GPUs found. This machine has NVIDIA GPUs: use nvidia-smi.`);
     return;
   }

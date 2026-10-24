@@ -30,6 +30,7 @@ const tables: Record<string, unknown> = {
   ALL_GPUS: hardware.ALL_GPUS,
   SERVERS: hardware.SERVERS,
   DRIVERS: hardware.DRIVERS,
+  NETS: hardware.NETS,
   MODELS: models.MODELS,
   MODEL_ALIAS: models.MODEL_ALIAS,
   DTYPES: models.DTYPES,
@@ -73,18 +74,18 @@ describe("shared data equals the reference's final tables", () => {
   });
 });
 
-// Data used by only one world. It still lives in src/legacy and moves into that world's pack in group 6;
+// Data used by only one world, in that world's pack;
 // checked here because a broken table (e.g. an empty MIG_ID) can hide from the parity replay.
-import * as w1data from "../../src/legacy/3b-data.ts";
-import * as w2data from "../../src/legacy/3-data.ts";
+import * as w1data from "../../src/packs/w1-gpu/data.ts";
+import * as w3data from "../../src/packs/w3-server/data.ts";
+import * as w2data from "../../src/packs/w2-software/data.ts";
 describe("world-only data equals the reference's final tables", () => {
   const world: Record<string, unknown> = {
     MIGP: w1data.MIGP,
     MIG_ID: w1data.MIG_ID,
     MIG_PRESETS: w1data.MIG_PRESETS,
     TENANTS: w1data.TENANTS,
-    TP_STEPS: w1data.TP_STEPS,
-    NETS: w1data.NETS,
+    TP_STEPS: w3data.TP_STEPS,
     IMAGES: w2data.IMAGES,
     STACK2: w2data.STACK2,
   };
