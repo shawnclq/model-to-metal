@@ -91,7 +91,7 @@ interface WorldPack {
 
 Core keeps the **dispatch order** exactly as today's `run()` chain (sudo, smi, foundry, docker, apt, clear/help/hint, python, World 0 commands, vllm, the multi-GPU commands, mpirun/torchrun, kubectl, not found). Each slot is filled by the current world's pack, by `shared/`, or by a guard (Decision 4).
 
-Types: `GameState` is a union by world (`W0State | W1State | …`), because each world's `freshState` has different fields. `ctx` gives packs `print`, `err`, `G`, `refs`, `exec` and the shared modules, so packs never reach into core's internals.
+Types: `GameState` is a union by world (`W0State | W1State | …`), because each world's `freshState` has different fields. The union is built from an interface, `WorldStates` (world number → state type), so a new world adds its own entry from inside its pack with a `declare module` block, without editing the core. Checks like `S.world === 3` still narrow as before. `ctx` gives packs `print`, `err`, `G`, `refs`, `exec` and the shared modules, so packs never reach into core's internals.
 
 ### 3. Manifest and on-demand loading
 

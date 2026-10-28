@@ -1,6 +1,7 @@
 // The list of worlds: everything the home screen, XP, "Up next" and level references need, for every world,
 // without loading any world's pack. Each pack's levels must match its entry here exactly (checked when the
-// pack is registered, and by tests). To add a world: add its pack, then one entry here.
+// pack is loaded, and by tests). To add a world: add its pack, then one entry here.
+import type { WorldPack } from "./types.ts";
 import { GUARDS as GUARDS_W0 } from "../packs/w0-model/guards.ts";
 import { GUARDS as GUARDS_W1 } from "../packs/w1-gpu/guards.ts";
 import { GUARDS as GUARDS_W2 } from "../packs/w2-software/guards.ts";
@@ -20,6 +21,8 @@ export type Guard = (t: string[]) => void;
 
 export interface WorldInfo {
   world: number;
+  /** Downloads this world's pack. A dynamic import, so the build puts each pack in its own file. */
+  load: () => Promise<{ PACK: WorldPack }>;
   /**
    * This world's guard answers, so the core can reply without loading the world: terminal verbs and
    * `foundry` subcommands that only this world understands.
@@ -34,6 +37,7 @@ export interface WorldInfo {
 export const MANIFEST: WorldInfo[] = [
   {
     world: 0,
+    load: () => import("../packs/w0-model/index.ts"),
     guards: GUARDS_W0,
     heading: "World 0 · Inside the model",
     blurb:
@@ -84,6 +88,7 @@ export const MANIFEST: WorldInfo[] = [
   },
   {
     world: 1,
+    load: () => import("../packs/w1-gpu/index.ts"),
     guards: GUARDS_W1,
     heading: "World 1 · Inside one GPU",
     blurb: "Capacity, bandwidth, compute and cost on a single chip.",
@@ -162,6 +167,7 @@ export const MANIFEST: WorldInfo[] = [
   },
   {
     world: 2,
+    load: () => import("../packs/w2-software/index.ts"),
     guards: GUARDS_W2,
     heading: "World 2 · The software path",
     blurb: "From a line of PyTorch to kernels on the SMs, and what goes wrong in between.",
@@ -200,6 +206,7 @@ export const MANIFEST: WorldInfo[] = [
   },
   {
     world: 3,
+    load: () => import("../packs/w3-server/index.ts"),
     guards: GUARDS_W3,
     heading: "World 3 · Many GPUs, one server",
     blurb: "NVLink, NVSwitch, NCCL and tensor parallelism on an 8-GPU HGX board.",
@@ -238,6 +245,7 @@ export const MANIFEST: WorldInfo[] = [
   },
   {
     world: 4,
+    load: () => import("../packs/w4-cluster/index.ts"),
     guards: GUARDS_W4,
     heading: "World 4 · Many servers",
     blurb: "InfiniBand, RDMA, Ray clusters, multi-node serving and training.",

@@ -6,7 +6,8 @@ Ground rule: from group 3 on, every task ends with `npm run test:parity` and `np
 
 - [x] 1.1 Add `package.json` (Node ≥ 20, npm, dev dependencies from design Decision 9, scripts `dev`, `build`, `preview`, `test`, `test:parity`, `test:visual`, `parity:update`, `check`), `tsconfig.json` (`strict`), `vite.config.ts`, `.prettierrc`, and add `dist/`, `test-results/`, `playwright-report/` to `.gitignore`. Verify: `npm ci && npx tsc --noEmit` succeed on an empty `src/main.ts`.
 - [x] 1.2 Create `index.html` with the static markup from `reference/source-parts/2-body.html` and the same `<head>` (fonts, meta) as `1-head.html` minus the CSS, loading `/src/main.ts`. Verify: `npm run build && npm run preview` serves a page whose header and home markup match the reference (no game logic yet).
-- [ ] 1.3 Add `.github/workflows/check.yml` running `npm ci`, `npx playwright install --with-deps chromium`, `npm run check` on push and pull request. Verify: the workflow passes on GitHub with the scripts that exist so far.
+- [x] 1.3 Add `.github/workflows/check.yml` running `npm ci`, `npx playwright install --with-deps chromium`, `npm run check` on push and pull request. Verify: the workflow passes on GitHub with the scripts that exist so far.
+  - Done: the first run (2ea9bd5) failed on a flicker timer ticking after test teardown; fixed with fake timers in `game.test.ts`. Run on cb365cb passed.
 
 ## 2. Safety net, built against the reference only
 
@@ -49,10 +50,14 @@ Each task: create `src/packs/<world>/` with `index.ts`, `levels.ts` (final order
 
 ## 7. On-demand loading
 
-- [ ] 7.1 Add `loadPack(world)` (cached promise, cleared on failure) and make `loadLevel` async with the "Loading World N…" message. Switch the manifest's `load` entries to `import()`. Verify: `npm run build` emits one chunk per pack; parity green.
-- [ ] 7.2 Add the failure state: "Couldn't load World N. Check your connection." with a **Try again** button. Verify with a Playwright test that blocks one pack's chunk: the message shows, Home still works and stars are intact; unblocking and pressing Try again opens the level.
-- [ ] 7.3 Add Playwright network tests: opening the home screen downloads no pack chunk; opening World 3, Level 1 downloads only World 3's chunk; opening World 3, Level 2 downloads nothing more; typing `ibstat` in a World 1 level downloads nothing and shows the recorded guard sentence.
-- [ ] 7.4 Add a test-only pack (one level, one command, a `.xp` style) registered in a test manifest. Verify: it appears after World 4 on the home screen, its level can be won, and core code was not edited to add it.
+- [x] 7.1 Add `loadPack(world)` (cached promise, cleared on failure) and make `loadLevel` async with the "Loading World N…" message. Switch the manifest's `load` entries to `import()`. Verify: `npm run build` emits one chunk per pack; parity green.
+  - Done: `loadPack` in `src/core/packs.ts` registers the pack and attaches its levels on arrival; boot and `main.ts` import no pack. If the world is already downloaded, `loadLevel` opens the level straight away (no loading flash, same behaviour as the single file); a newer click, or going Home, wins over a download still on its way. Build emits `w0-model`…`w4-cluster` chunks. Unit tests: start-up loads nothing, one download per world, failed download retried, Home during a download stays home. Layering test now also checks `import()`: only the manifest loads packs, and only their `index.ts` on demand.
+- [x] 7.2 Add the failure state: "Couldn't load World N. Check your connection." with a **Try again** button. Verify with a Playwright test that blocks one pack's chunk: the message shows, Home still works and stars are intact; unblocking and pressing Try again opens the level.
+  - Done: `tests/loading/loading.spec.ts` (Playwright project `loading`, real build files). Also covers the slow-connection scenario: a held download shows "Loading World 0…" with the sim and terminal hidden.
+- [x] 7.3 Add Playwright network tests: opening the home screen downloads no pack chunk; opening World 3, Level 1 downloads only World 3's chunk; opening World 3, Level 2 downloads nothing more; typing `ibstat` in a World 1 level downloads nothing and shows the recorded guard sentence.
+  - Done: same file. The `ibstat` sentence is read live from the reference, not copied.
+- [x] 7.4 Add a test-only pack (one level, one command, a `.xp` style) registered in a test manifest. Verify: it appears after World 4 on the home screen, its level can be won, and core code was not edited to add it.
+  - Done: `tests/pack/` holds World 5 (pack, `pack.css` with `.xp`, test manifest entry, entry file, Vite config that swaps the page's entry). Playwright project `pack` serves it with the dev server on port 5174. `GameState` became open (`WorldStates`, see design.md) so the pack declares its own state type. A unit test checks no `src/` file mentions the test world.
 
 ## 8. Scoped styles
 

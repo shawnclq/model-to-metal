@@ -15,13 +15,24 @@ export default defineConfig({
   projects: [
     { name: "parity", testMatch: "parity/*.spec.ts" },
     { name: "visual", testMatch: "visual/*.spec.ts" },
+    { name: "loading", testMatch: "loading/*.spec.ts" },
+    // The game plus a test-only World 5, served by the dev server with the test entry (tests/pack/vite.config.ts).
+    { name: "pack", testMatch: "pack/*.spec.ts", use: { baseURL: "http://localhost:5174" } },
   ],
   webServer: needsBuild
-    ? {
-        command: "npm run build && npm run preview",
-        url: "http://localhost:4173",
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-      }
+    ? [
+        {
+          command: "npm run build && npm run preview",
+          url: "http://localhost:4173",
+          reuseExistingServer: !process.env.CI,
+          timeout: 120_000,
+        },
+        {
+          command: "npx vite --config tests/pack/vite.config.ts --port 5174 --strictPort",
+          url: "http://localhost:5174",
+          reuseExistingServer: !process.env.CI,
+          timeout: 60_000,
+        },
+      ]
     : undefined,
 });

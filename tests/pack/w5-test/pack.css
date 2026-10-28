@@ -1,0 +1,6 @@
+/* Deliberately reuses the header XP pill's class name, with loud values, to prove pack styles stay inside the pack. */
+#simCard[data-world="5"] .xp {
+  color: rgb(255, 0, 0);
+  font-size: 40px;
+  border: 4px solid rgb(255, 0, 0);
+}

@@ -1,7 +1,7 @@
 import type { GameState } from "./types.ts";
 import type { Lab } from "./types.ts";
 import { MANIFEST } from "./manifest.ts";
-import { allPacks } from "./packs.ts";
+import { allPacks, loadPack, loadedPack } from "./packs.ts";
 import { CATALOG } from "./catalog.ts";
 import { print } from "./terminal.ts";
 import { refs } from "./catalog.ts";
@@ -35,12 +35,73 @@ export function getLevel(id: string): Playable | undefined {
   }
   return undefined;
 }
-export function loadLevel(id: string) {
-  const L = getLevel(id);
-  if (!L) return;
+/** The world a level or lab belongs to, from the manifest (so it's known before the world is downloaded). */
+function worldOf(id: string): number | undefined {
+  return LEVEL_BY_ID.get(id)?.world ?? MANIFEST.find((W) => W.lab?.id === id)?.world;
+}
+// Counts open requests, so only the newest one opens a level if the player clicks again while a world downloads.
+let opening = 0;
+/**
+ * Open a level. If its world is already downloaded this runs straight through, exactly like the single file;
+ * otherwise it shows "Loading World N…" first, or a "Try again" message if the download fails.
+ */
+export async function loadLevel(id: string): Promise<void> {
+  const world = worldOf(id);
+  if (world === undefined) return;
+  const ticket = ++opening;
+  if (!loadedPack(world)) {
+    missionMessage("Loading World " + world + "…", "", "");
+    try {
+      await loadPack(world);
+    } catch (e) {
+      console.error(e);
+      if (ticket === opening && G.mode === "game") {
+        missionMessage(
+          `World ${world}`,
+          `Couldn't load World ${world}`,
+          `<p>Check your connection, then try again. Your stars are safe.</p><p><button class="btn" type="button" id="retryBtn">Try again</button></p>`,
+        );
+        $("#retryBtn").addEventListener("click", () => loadLevel(id));
+      }
+      return;
+    }
+    // Stay put if the player went home or opened another level while this world was downloading.
+    if (ticket !== opening || G.mode !== "game") return;
+  }
+  startLevel(getLevel(id)!);
+}
+/** The mission panel with only a heading and a short message: while a world downloads, or if it can't. */
+function missionMessage(eyebrow: string, title: string, html: string) {
+  $("#cmpModal").hidden = true;
+  $("#modal").hidden = true;
+  clearTimeout(G.tt); // the last level's pending win modal or animation must not fire on this screen
+  clearTimeout(G.wt);
+  stopFlicker();
+  $("#mEyebrow").textContent = eyebrow;
+  $("#mTitle").textContent = title;
+  $("#mConcept").hidden = true;
+  $("#mBrief").innerHTML = html;
+  for (const s of [
+    "#goalWrap",
+    "#hintWrap",
+    ".m-actions",
+    "#manual",
+    "#glossSide",
+    "#stripCard",
+    "#simCard",
+    "#termCard",
+    "#quiz",
+  ])
+    $(s).hidden = true;
+  show("game");
+}
+function startLevel(L: Playable) {
   $("#cmpModal").hidden = true;
   clearTimeout(G.tt);
   clearTimeout(G.wt);
+  $("#mConcept").hidden = false; // shown again after a loading message
+  $(".m-actions").hidden = false;
+  $("#stripCard").hidden = false;
   G.level = L;
   G.S = packFor(L.world).freshState();
   if (L.setup) L.setup(G.S!);

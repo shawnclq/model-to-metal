@@ -1,10 +1,4 @@
-import { PACK as W4_PACK } from "../packs/w4-cluster/index.ts";
-import { PACK as W3_PACK } from "../packs/w3-server/index.ts";
-import { PACK as W2_PACK } from "../packs/w2-software/index.ts";
-import { PACK as W1_PACK } from "../packs/w1-gpu/index.ts";
-import { PACK as W0_PACK } from "../packs/w0-model/index.ts";
-import { CATALOG, attachLevels } from "./catalog.ts";
-import { MANIFEST } from "./manifest.ts";
+import { CATALOG } from "./catalog.ts";
 import { packFor } from "./packs.ts";
 import { refs } from "./catalog.ts";
 import { printHelp } from "./help.ts";
@@ -16,7 +10,6 @@ import { renderCompare } from "./compare.ts";
 import { renderManual } from "./help.ts";
 import { renderGloss, renderHome, setMath, show } from "./home.ts";
 import { checkGoals, loadLevel, renderQuiz, showHint } from "./levels.ts";
-import { registerPack } from "./packs.ts";
 import { bindReset, nextLevelId } from "./progress.ts";
 import { renderSim, renderStrip } from "./sim.ts";
 import { G } from "./state.ts";
@@ -25,11 +18,9 @@ import type { Level } from "./types.ts";
 import { $, store } from "../shared/data/format.ts";
 import { host } from "../shared/host.ts";
 import { infoHtml } from "../shared/ui/info.ts";
-// Start-up: wire the page's buttons and keys, register the worlds, and show the home screen.
-for (const p of [W0_PACK, W1_PACK, W2_PACK, W3_PACK, W4_PACK]) registerPack(p);
+// Start-up: number every level, wire the page's buttons and keys, and show the home screen.
+// No world's pack is loaded here; each one downloads when one of its levels first opens (see loadLevel).
 finaliseLevels(); // check the manifest's IDs and number every level
-// Each world's full levels must match the manifest; they get their numbers from it.
-for (const W of MANIFEST) attachLevels(W.world, packFor(W.world).levels);
 // Fill in what shared and world code needs from the running game (see src/shared/host.ts).
 Object.assign(host, {
   G,

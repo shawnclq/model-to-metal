@@ -45,7 +45,10 @@ afterEach(() => {
 });
 
 /** Load the game into a fresh page. `seed` runs first, e.g. to put a save in localStorage or block storage. */
-async function boot(seed?: Record<string, string>, opts: { blockStorage?: boolean } = {}): Promise<Page> {
+async function boot(
+  seed?: Record<string, string>,
+  opts: { blockStorage?: boolean; lazy?: boolean } = {},
+): Promise<Page> {
   const dom = new JSDOM(INDEX, { url: "https://m2m.test/", pretendToBeVisual: true });
   const w = dom.window;
   w.scrollTo = () => {};
@@ -67,6 +70,10 @@ async function boot(seed?: Record<string, string>, opts: { blockStorage?: boolea
   });
   vi.resetModules(); // a fresh copy of every module, like a page reload
   await import("../../src/main.ts");
+  // Packs normally download when a level first opens; load them all so these checks can open any level at once.
+  const { loadPack } = await import("../../src/core/packs.ts");
+  const { MANIFEST } = await import("../../src/core/manifest.ts");
+  if (!opts.lazy) await Promise.all(MANIFEST.map((W) => loadPack(W.world)));
   // The game's functions now live in several core modules; gather the ones these checks use.
   const app = {
     ...(await import("../../src/core/levels.ts")),
@@ -339,5 +346,53 @@ describe("manifest", () => {
           .slice(1),
       ),
     ).toThrow(/World 1: level "gpu-anatomy" is in the manifest but not in the pack/);
+  });
+});
+
+describe("on-demand loading", () => {
+  it("start-up loads no world; opening a level loads its world once, then opens it", async () => {
+    const p = await boot(undefined, { lazy: true });
+    const packs = await import("../../src/core/packs.ts");
+    expect(packs.allPacks()).toEqual([]);
+    const W3 = p.manifest.MANIFEST.find((W) => W.world === 3)!;
+    const real = W3.load;
+    let calls = 0;
+    W3.load = () => (calls++, real());
+    const opening = p.app.loadLevel("hgx-board");
+    expect(p.$("#mEyebrow").textContent).toBe("Loading World 3…");
+    expect(p.$("#simCard").hidden).toBe(true);
+    p.app.loadLevel("hgx-board"); // a second click while it downloads shares the same download
+    await opening;
+    await vi.waitFor(() => expect(p.app.G.level?.id).toBe("hgx-board"));
+    expect(p.$("#mEyebrow").textContent).toBe("World 3 · Level 1");
+    expect(p.$("#simCard").hidden).toBe(false);
+    p.app.loadLevel("tensor-parallel"); // already downloaded: opens straight away
+    expect(p.app.G.level?.id).toBe("tensor-parallel");
+    expect(calls).toBe(1);
+    expect(packs.allPacks().map((x) => x.world)).toEqual([3]);
+  });
+  it("a failed download shows Try again, keeps stars, and Try again really retries", async () => {
+    const p = await boot({ [NEW]: JSON.stringify({ v: 1, stars: { tokens: 2 } }) }, { lazy: true });
+    const W1 = p.manifest.MANIFEST.find((W) => W.world === 1)!;
+    const real = W1.load;
+    W1.load = () => Promise.reject(new TypeError("Failed to fetch dynamically imported module"));
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    await p.app.loadLevel("gpu-anatomy");
+    err.mockRestore();
+    expect(p.$("#mTitle").textContent).toBe("Couldn't load World 1");
+    expect(p.$("#mBrief").textContent).toContain("Check your connection");
+    expect(savedStars(p)).toEqual({ v: 1, stars: { tokens: 2 } });
+    W1.load = real;
+    p.$("#retryBtn").click();
+    await vi.waitFor(() => expect(p.app.G.level?.id).toBe("gpu-anatomy"));
+    expect(p.$("#mConcept").hidden).toBe(false);
+  });
+  it("going home while a world downloads stays home", async () => {
+    const p = await boot(undefined, { lazy: true });
+    const opening = p.app.loadLevel("fabric");
+    p.app.show("home");
+    await opening;
+    expect(p.app.G.mode).toBe("home");
+    expect(p.app.G.level).toBe(null);
   });
 });

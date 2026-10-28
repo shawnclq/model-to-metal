@@ -1,7 +1,7 @@
 // The core's types: each world's sim state, and the contract every world pack fills in.
 
 /** Fields every world's state has. */
-interface BaseState {
+export interface BaseState {
   gpu: string;
   model: string;
   flags: Record<string, boolean>; // goal flags: things the player has done ("ran nvidia-smi")
@@ -81,8 +81,21 @@ export interface W4State extends BaseState {
   job: { tp: number; pp: number } | null;
 }
 
+/**
+ * Each world's sim state, by world number. An interface rather than a fixed list, so a new world adds its
+ * own entry from inside its pack without editing the core:
+ *   declare module "../../core/types.ts" { interface WorldStates { 5: W5State } }
+ */
+export interface WorldStates {
+  0: W0State;
+  1: W1State;
+  2: W2State;
+  3: W3State;
+  4: W4State;
+}
+
 /** The open level's sim state: one of the worlds' states, told apart by `world`. */
-export type GameState = W0State | W1State | W2State | W3State | W4State;
+export type GameState = WorldStates[keyof WorldStates];
 
 /** Draws one control in the controls bar ("" when it shouldn't show right now). */
 export type ControlRenderer = (C: string[], lk: Record<string, string>) => string;
