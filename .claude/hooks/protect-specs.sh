@@ -30,7 +30,8 @@ def deny(what):
     raise SystemExit
 
 if tool == "Bash":
-    cmd = ti.get("command", "")
+    # Drop stream plumbing (2>&1, >/dev/null) first so read-only commands are not mistaken for writes.
+    cmd = re.sub(r"\d*>&\d|\d*>\s*/dev/null", "", ti.get("command", ""))
     if re.search(PROTECTED, cmd) and \
        re.search(r"sed\s+-i|perl\s+-[a-z]*i|>|\btee\b|\bmv\b|\bcp\b|\brm\b|\btouch\b|python|\bawk\b", cmd):
         deny("That command writes to a protected OpenSpec file, which")

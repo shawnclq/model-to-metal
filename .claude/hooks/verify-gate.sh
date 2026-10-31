@@ -32,7 +32,7 @@ def deny(reason):
     raise SystemExit
 
 if tool == "Bash":
-    # Drop stream plumbing (2>&1, >/dev/null) first so read-only commands aren't mistaken for writes.
+    # Drop stream plumbing (2>&1, >/dev/null) first so read-only commands are not mistaken for writes.
     cmd = re.sub(r"\d*>&\d|\d*>\s*/dev/null", "", ti.get("command", ""))
     if re.search(r"openspec/changes/[^\s]*tasks\.md|\btasks\.md\b", cmd) and \
        re.search(r"sed\s+-i|perl\s+-[a-z]*i|>|\btee\b|\bmv\b|\bcp\b|python|\bawk\b", cmd):
