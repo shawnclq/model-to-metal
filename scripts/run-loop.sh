@@ -13,6 +13,8 @@
 #
 # Stops on: AGENT_STOP file, MAX_ITERS build sessions, or 2 sessions in a row
 # that add no commits. Never archives: a human does that after review.
+# Tasks listed in scripts/human-tasks.txt are left for a human: the loop stops
+# when only those remain, and verify-gate.sh won't let the builder tick them.
 #
 # Env: MAX_ITERS (8), BASE_BRANCH (branch you start from), MAX_BUDGET_USD
 #      (per claude session, optional), BUILDER_TOOLS / EVALUATOR_TOOLS (override
@@ -31,7 +33,7 @@ export HARNESS_LOOP=1 # turns on the commit-on-stop hook for these sessions only
 # Why dontAsk + explicit allow lists: headless sessions can't answer prompts, and
 # an allow list is a hard boundary, unlike instructions in a prompt. The builder
 # can't push or archive; the evaluator can only read.
-BUILDER_TOOLS=${BUILDER_TOOLS:-"Read Glob Grep Edit Write MultiEdit TodoWrite Bash(npm run:*) Bash(npm test:*) Bash(npm ci) Bash(npx:*) Bash(node:*) Bash(openspec:*) Bash(git status:*) Bash(git diff:*) Bash(git log:*) Bash(git show:*) Bash(git add:*) Bash(git commit:*) Bash(mkdir:*) Bash(ls:*) Bash(tee:*)"}
+BUILDER_TOOLS=${BUILDER_TOOLS:-"Read Glob Grep Edit Write MultiEdit TodoWrite Bash(npm run:*) Bash(npm test:*) Bash(PARITY_TARGET=reference npm run:*) Bash(npm ci) Bash(npx:*) Bash(node:*) Bash(openspec:*) Bash(git status:*) Bash(git diff:*) Bash(git log:*) Bash(git show:*) Bash(git add:*) Bash(git commit:*) Bash(mkdir:*) Bash(ls:*) Bash(tee:*)"}
 BUILDER_DENY="Bash(openspec archive:*) Bash(git push:*) Skill(opsx:archive) Skill(openspec-archive-change)"
 EVALUATOR_TOOLS=${EVALUATOR_TOOLS:-"Read Glob Grep Bash(git log:*) Bash(git diff:*) Bash(git show:*)"}
 BUDGET_FLAG=(); [ -n "${MAX_BUDGET_USD:-}" ] && BUDGET_FLAG=(--max-budget-usd "$MAX_BUDGET_USD")
@@ -40,11 +42,21 @@ say() { printf '\n\033[1m[loop]\033[0m %s\n' "$*"; }
 dry() { printf '  \033[2m[dry-run] would run:\033[0m %s\n' "$*"; }
 die() { say "STOP: $*"; exit "${2:-1}"; }
 
-# Tasks left in a change, from the OpenSpec CLI rather than grepping markdown.
+HUMAN_TASKS_FILE=scripts/human-tasks.txt
+# Task IDs a human must tick for this change, space-separated.
+human_tasks() {
+  if [ -f "$HUMAN_TASKS_FILE" ]; then awk -v c="$1" '$1 == c { printf "%s ", $2 }' "$HUMAN_TASKS_FILE"; fi
+}
+# Unticked tasks the builder may do. Parses tasks.md itself (not `openspec list`)
+# because the CLI's count can't leave out the human-only tasks.
 remaining() {
-  openspec list --json | python3 -c 'import json,sys
-c=[x for x in json.load(sys.stdin)["changes"] if x["name"]==sys.argv[1]]
-print(c[0]["totalTasks"]-c[0]["completedTasks"] if c else 0)' "$1"
+  python3 - "$1" "$(human_tasks "$1")" <<'PY'
+import os, re, sys
+change, human = sys.argv[1], set(sys.argv[2].split())
+path = f"openspec/changes/{change}/tasks.md"
+text = open(path).read() if os.path.exists(path) else ""
+print(sum(1 for m in re.finditer(r"^\s*- \[ \]\s+(\d+\.\d+)?", text, re.M) if m.group(1) not in human))
+PY
 }
 
 # Findings belong to one change; the first line records which.
@@ -71,9 +83,10 @@ if [ $# -gt 0 ]; then
   changes=("$@")
 else
   changes=()
-  while IFS= read -r c; do changes+=("$c"); done < <(openspec list --json | python3 -c 'import json,sys
-for c in json.load(sys.stdin)["changes"]:
-    if c["totalTasks"] > c["completedTasks"]: print(c["name"])')
+  while IFS= read -r c; do
+    if [ "$(remaining "$c")" -gt 0 ]; then changes+=("$c"); fi
+  done < <(openspec list --json | python3 -c 'import json,sys
+for c in json.load(sys.stdin)["changes"]: print(c["name"])')
   # Also resume a change whose last cycle left findings, even if all its tasks are ticked.
   if [ -f "$FINDINGS" ]; then
     c=$(head -1 "$FINDINGS" | sed -n 's/^<!-- change: \(.*\) -->$/\1/p')
@@ -98,7 +111,9 @@ for change in "${changes[@]}"; do
     [ -e AGENT_STOP ] && die "AGENT_STOP found" 0
     left=$(remaining "$change")
     if [ "$left" -eq 0 ] && ! findings_for "$change"; then
-      say "$change: all tasks ticked, reviewed and green. Not archiving: review the PR, then run /opsx:archive yourself."
+      say "$change: all builder tasks ticked, reviewed and green. Not archiving."
+      [ -n "$(human_tasks "$change")" ] && say "Left for you to check and tick: $(human_tasks "$change")(see $HUMAN_TASKS_FILE)"
+      say "Then review the PR and run /opsx:archive yourself."
       break
     fi
     iter=$((iter + 1))
@@ -107,7 +122,10 @@ for change in "${changes[@]}"; do
     # 1. build ---------------------------------------------------------------
     prompt="/opsx:apply $change
 
-Follow CLAUDE.md \"Building a change\": do only the first task group with unticked tasks, save and Read evidence before ticking each task, commit at each task, then stop. Do not archive."
+Follow CLAUDE.md \"Building a change\": do only the first task group with unticked tasks, save and Read evidence before ticking each task, commit at each task, then stop. Do not archive. If you edit CLAUDE.md, keep its \"Building a change\" section."
+    if [ -n "$(human_tasks "$change")" ]; then
+      prompt+=" These tasks are for a human: do not work on or tick them: $(human_tasks "$change")"
+    fi
     if findings_for "$change"; then
       prompt+="
 

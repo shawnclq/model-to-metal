@@ -1,0 +1,4 @@
+# Tasks the run-loop.sh builder must not do. A human ticks these after checking.
+# The loop stops when only these are left; verify-gate.sh denies the builder ticking them.
+# Format: <change-name> <task-id>  # why
+modular-web-build 9.3  # needs a green CI link and a play-through on a phone

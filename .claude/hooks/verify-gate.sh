@@ -69,6 +69,18 @@ newly = ticked(after) - ticked(before)
 if not newly:
     raise SystemExit
 
+# Inside run-loop.sh, tasks in scripts/human-tasks.txt are for a human only.
+if os.environ.get("HARNESS_LOOP") == "1":
+    human = set()
+    hf = os.path.join(root, "scripts", "human-tasks.txt")
+    if os.path.exists(hf):
+        for line in open(hf):
+            p = line.split("#")[0].split()
+            if len(p) == 2 and p[0] == change:
+                human.add(p[1])
+    if newly & human:
+        deny(f"Tasks {sorted(newly & human)} are for a human to check and tick (scripts/human-tasks.txt). Leave them unticked and stop.")
+
 reads = []
 if os.path.exists(os.environ["LOG"]):
     for line in open(os.environ["LOG"]):
