@@ -150,7 +150,12 @@ const label = (s: Step) =>
   s.do === "cmd" ? `$ ${s.text}` : s.do === "open" ? `open ${s.id}` : s.do === "pick" ? `pick q${s.q} o${s.o}` : s.do;
 
 /** Play every scene in order on one page; record only what changed after each step. */
-export async function playScript(page: Page, scenes: Scene[]): Promise<Recording> {
+/** Plays the script and records the screen after every step. `onStep` runs after each step, before modals close. */
+export async function playScript(
+  page: Page,
+  scenes: Scene[],
+  onStep?: (scene: string, step: string) => Promise<void>,
+): Promise<Recording> {
   const rec: Recording = {};
   let prev: Awaited<ReturnType<typeof read>> | null = null;
   for (const scene of scenes) {
@@ -161,6 +166,7 @@ export async function playScript(page: Page, scenes: Scene[]): Promise<Recording
       await act(page, step);
       if (process.env.PARITY_DEBUG) console.log(`${scene.name} | ${label(step)} | ${Date.now() - t0} ms`);
       const now = await read(page);
+      await onStep?.(scene.name, label(step));
       if (step.do === "compare") await page.click("#cmpClose");
       const e: Entry = { step: label(step) };
       for (const k of Object.keys(now) as (keyof typeof now)[]) {

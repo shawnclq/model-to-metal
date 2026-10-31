@@ -6,6 +6,7 @@ import { helpW2, manualW2 } from "./help.ts";
 import { LAB, LEVELS } from "./levels.ts";
 import { renderW2, simHeader } from "./render.ts";
 import { freshState } from "./state.ts";
+import "./pack.css"; // this world's own styles, downloaded with the pack
 
 export const PACK: WorldPack = {
   world: 2,

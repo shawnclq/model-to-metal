@@ -27,6 +27,18 @@ This repo uses **OpenSpec** for specs and change proposals. CLAUDE.md describes 
 - `docs/webapp-ideas.md` holds early notes from prototyping (an outline architecture and the order of work). Treat it as input for writing proposals, not as an agreed plan.
 - Until a proposal says otherwise, `reference/model-to-metal.html` is the source of truth for behaviour, content and look. Any change should keep the game playing the same unless the proposal changes it on purpose.
 
+## Building a change (long-running harness)
+
+Approved changes can be built by `scripts/run-loop.sh`, one fresh `claude -p "/opsx:apply <change>"` session at a time, each checked by the `evaluator` agent and CI. The same rules apply when you run `/opsx:apply` by hand. The hooks in `.claude/settings.json` enforce some of them.
+
+- **Start here.** Read the change's `tasks.md` (it is the progress file: ticked tasks and their "Done:" notes are the handoff), then `NEXT_FINDINGS.md` if it exists, then `git log --oneline -10`. Run `npm test` once so you know you start from a working tree. If `NEXT_FINDINGS.md` exists, fix those findings before anything else.
+- **One task group per session.** Work only on the first task group (`## N. …`) that still has unticked tasks. Finish it, commit, and stop. Don't start the next group.
+- **Proof before ticking.** A task is done only after you run its `Verify:` step, save the output to `evidence/<change>/<task-id>-<what>.txt` (for example `evidence/modular-web-build/9.1-npm-check.txt`), open that file with the Read tool, and see that it shows success. The `verify-gate` hook blocks ticking a task until evidence for its group has been read in this session. Tick tasks with the Edit tool, not Bash. Don't try to work around the hook.
+- **The plan is read-only.** `proposal.md`, `design.md`, `specs/` and everything in `openspec/specs/` can't be edited by agents (the `protect-specs` hook). If the plan is wrong or a task needs more than it says, stop and explain why in your final message. A human will run `/opsx:update`. Planning sessions that need to edit them start Claude with `ALLOW_SPEC_EDITS=1`.
+- **Commit at checkpoints.** After each task, `git add` the code, the `tasks.md` tick and its evidence file, and commit as `<change> <task-id>: <what>`. In the loop, the `Stop` hook commits anything left over as a backstop.
+- **Never archive.** Don't run `/opsx:archive` or `openspec archive`. A human archives after review.
+- **Steering.** Messages starting `OPERATOR STEERING:` come from a human through `STEER.md`. They override your current plan. `touch AGENT_STOP` halts every tool call.
+
 ## How the current file is organised
 
 The single file is a concatenation of these parts, in this order (see `reference/build.sh`):

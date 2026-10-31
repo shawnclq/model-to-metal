@@ -61,8 +61,10 @@ Each task: create `src/packs/<world>/` with `index.ts`, `levels.ts` (final order
 
 ## 8. Scoped styles
 
-- [ ] 8.1 Split `src/legacy/styles.css` into `src/core/core.css` and each pack's `pack.css`. Prefix every pack selector with `#simCard[data-world="N"]`, set `data-world` when a level starts, and move any world-section rule that styles something outside `#simCard` into `core.css`. Verify: visual green in all modes and widths.
-- [ ] 8.2 Add a Vitest CSS check that fails if any selector in a `pack.css` lacks its prefix, and a Playwright check that the test pack's `.xp` leaves the header XP pill's computed style unchanged. Verify: both pass; removing one prefix makes the CSS check fail and name the file and selector.
+- [x] 8.1 Split `src/legacy/styles.css` (by now `src/core/styles.css`) into `src/core/core.css` and each pack's `pack.css`. Prefix every pack selector with `#simCard[data-world="N"]`, set `data-world` when a level starts, and move any world-section rule that styles something outside `#simCard` into `core.css`. Verify: visual green in all modes and widths.
+  - Done: `src/core/core.css` plus `pack.css` in Worlds 0–2 (Worlds 3–4 have no rules of their own; see design.md Decision 6 for how ownership was decided). `loadLevel` sets `data-world`. New `tests/visual/styles.spec.ts` compares computed styles with the reference after all 829 steps; it passed before and after the split, and failed (naming element and property) when one `gap` in World 0's stylesheet was changed by 1px.
+- [x] 8.2 Add a Vitest CSS check that fails if any selector in a `pack.css` lacks its prefix, and a Playwright check that the test pack's `.xp` leaves the header XP pill's computed style unchanged. Verify: both pass; removing one prefix makes the CSS check fail and name the file and selector.
+  - Done: `tests/unit/css-scope.test.ts` (also rejects `@keyframes`/`@font-face`/`@import` in a pack; covers the test pack); removing the `.pill` prefix fails with `src/packs/w1-gpu/pack.css:14: ".pill" doesn't start with …`. The `.xp` check is in `tests/pack/pack.spec.ts`; unscoping the test pack's `.xp` makes it fail. `postcss` added as a dev dependency (already installed via Vite).
 
 ## 9. Hand-over
 

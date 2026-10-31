@@ -6,3 +6,10 @@ node_modules/
 dist/
 test-results/
 playwright-report/
+
+# long-running harness (scripts/run-loop.sh); evidence/ is committed on purpose
+.claude/.evidence-reads
+.harness/
+NEXT_FINDINGS.md
+AGENT_STOP
+STEER.md

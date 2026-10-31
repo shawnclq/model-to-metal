@@ -1,0 +1,222 @@
+/* World 1's own styles: things only this world's sim panel draws. Loaded with the pack.
+   Every selector starts with #simCard[data-world="1"], so nothing here can reach the rest of the page
+   (checked by tests/unit/css-scope.test.ts). Shared pieces (chip, tiles, controls) are styled in core.css. */
+#simCard[data-world="1"] .linkbar {
+  fill: var(--signal);
+  cursor: pointer;
+}
+#simCard[data-world="1"] .stklbl {
+  font-family: var(--mono);
+  font-size: 10px;
+  fill: #fff;
+  pointer-events: none;
+}
+#simCard[data-world="1"] .pill {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: var(--panel-2);
+  border: 1px solid var(--rule);
+  font-weight: 600;
+}
+#simCard[data-world="1"] .pill.mem {
+  background: var(--sea);
+  color: var(--sea-ink);
+  border-color: var(--sea);
+}
+#simCard[data-world="1"] .pill.cmp {
+  background: var(--signal);
+  color: var(--signal-ink);
+  border-color: var(--signal);
+}
+#simCard[data-world="1"] .pill.bad {
+  background: var(--bad);
+  color: #fff;
+  border-color: var(--bad);
+}
+#simCard[data-world="1"] .pill.ok {
+  background: var(--ok);
+  color: #fff;
+  border-color: var(--ok);
+}
+#simCard[data-world="1"] .meters {
+  display: grid;
+  gap: 8px;
+}
+#simCard[data-world="1"] .meter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  font-size: 12.5px;
+}
+#simCard[data-world="1"] .meter .bar {
+  grid-column: 1/-1;
+  height: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+}
+#simCard[data-world="1"] .meter .bar span {
+  display: block;
+  height: 100%;
+  background: var(--sea);
+  transition: width 0.4s;
+}
+#simCard[data-world="1"] .meter.t .bar span {
+  background: var(--signal);
+}
+#simCard[data-world="1"] .meter b {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+#simCard[data-world="1"] .roofsec {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--rule);
+}
+#simCard[data-world="1"] .roofsec svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-width: 760px;
+  min-width: 520px;
+}
+#simCard[data-world="1"] .pt-dec {
+  fill: var(--sea);
+  stroke: var(--panel);
+  stroke-width: 2;
+}
+#simCard[data-world="1"] .pt-pre {
+  fill: var(--signal);
+  stroke: var(--panel);
+  stroke-width: 2;
+}
+#simCard[data-world="1"] .ptl {
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--ink);
+  font-weight: 600;
+}
+#simCard[data-world="1"] .zone {
+  font-family: var(--body);
+  font-size: 11px;
+  fill: var(--muted);
+  font-style: italic;
+}
+#simCard[data-world="1"] .mathhint {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+#simCard[data-world="1"] .miggrid {
+  display: grid;
+  gap: 4px;
+}
+#simCard[data-world="1"] .miggrid.c7 {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+#simCard[data-world="1"] .miggrid.m8 {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+#simCard[data-world="1"] .mblk {
+  min-height: 46px;
+  border-radius: 5px;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4px;
+  cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
+}
+#simCard[data-world="1"] .mblk small {
+  font-weight: 400;
+  font-size: 10px;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+#simCard[data-world="1"] .mblk.free {
+  background: var(--panel-2);
+  border: 1px dashed var(--rule);
+  color: var(--muted);
+  cursor: default;
+}
+#simCard[data-world="1"] .mblk.one {
+  background: var(--idle);
+}
+#simCard[data-world="1"] .mblk.ts {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--warn) 0 10px,
+    color-mix(in srgb, var(--warn) 70%, var(--panel)) 10px 20px
+  );
+  color: var(--signal-ink);
+}
+#simCard[data-world="1"] .tenants {
+  display: grid;
+  gap: 6px;
+}
+#simCard[data-world="1"] .trow {
+  display: grid;
+  grid-template-columns: minmax(110px, auto) 52px minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 7px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--panel-2);
+  font-size: 13.5px;
+}
+#simCard[data-world="1"] .trow .need {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+#simCard[data-world="1"] .trow .ds {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+#simCard[data-world="1"] .trow .st {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+#simCard[data-world="1"] .trow.ok {
+  border-color: var(--ok);
+}
+#simCard[data-world="1"] .trow.ok .st {
+  color: var(--ok);
+}
+#simCard[data-world="1"] .trow.bad {
+  border-color: var(--bad);
+}
+#simCard[data-world="1"] .trow.bad .st {
+  color: var(--bad);
+}
+#simCard[data-world="1"] .trow.warn {
+  border-color: var(--warn);
+}
+#simCard[data-world="1"] .trow.warn .st {
+  color: var(--warn);
+}
+@media (max-width: 640px) {
+  #simCard[data-world="1"] .trow {
+    grid-template-columns: 1fr auto;
+  }
+  #simCard[data-world="1"] .trow .ds {
+    grid-column: 1/-1;
+  }
+  #simCard[data-world="1"] .trow .st {
+    grid-column: 1/-1;
+  }
+}

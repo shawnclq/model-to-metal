@@ -11,6 +11,7 @@ import { foundryLoad } from "../../shared/bench/foundry.ts";
 import { f0, parseNum } from "../../shared/data/format.ts";
 import { KVDT } from "../../shared/data/models.ts";
 import { host } from "../../shared/host.ts";
+import "./pack.css"; // this world's own styles, downloaded with the pack
 
 // KNOWN BUG, kept for parity (see design.md): in the single file, a bench change in World 0 ran World 4's status
 // line, which failed on World 0's state with exactly this error, after the change itself was made.

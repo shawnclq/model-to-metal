@@ -153,6 +153,8 @@ After this change, the same file becomes the game's **snapshot test**. Any later
 - Each pack's `pack.css` holds its world section from today's CSS, and **every selector starts with `#simCard[data-world="N"]`**. Core sets `data-world` on `#simCard` when a level starts.
 - A Vitest test parses each `pack.css` and fails if any selector lacks the prefix. Another test loads a pack that defines `.xp` and checks that the header XP pill's computed style is unchanged (spec: pack styles stay inside the pack).
 - Rules in a world section that style something outside `#simCard` (to be checked line by line while porting) move to `core.css`, so the look doesn't change.
+- As built: a rule moved to a pack only when (a) playing the whole parity script on the reference, it matched elements only inside that world's sim panel, and (b) the component it styles (its first class) is drawn only by that world's code. Everything else stayed in `core.css`. Worlds 3 and 4 own no rules: their panels reuse World 1's chip and the shared tiles, so they have no `pack.css`. 115 rules moved (World 0: 44, World 1: 42, World 2: 29).
+- A style-parity test (`tests/visual/styles.spec.ts`) plays the parity script on the reference and the build side by side and compares the computed looks of every visible element after every step, so the move is proven for every panel the script reaches, not just the screenshot screens.
 
 *Why not CSS Modules?* Every class name is written inside HTML strings. CSS Modules would mean rewriting all of them to imported names, which is a large, risky change for the same result.
 

@@ -1,0 +1,147 @@
+/* World 2's own styles: things only this world's sim panel draws. Loaded with the pack.
+   Every selector starts with #simCard[data-world="2"], so nothing here can reach the rest of the page
+   (checked by tests/unit/css-scope.test.ts). Shared pieces (chip, tiles, controls) are styled in core.css. */
+#simCard[data-world="2"] .stackdiag {
+  display: grid;
+  gap: 6px;
+}
+#simCard[data-world="2"] .srow {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+  text-align: left;
+  background: var(--panel-2);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 8px 10px;
+  width: 100%;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+#simCard[data-world="2"] .srow:hover {
+  border-color: var(--sea);
+}
+#simCard[data-world="2"] .srow .i {
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--sea);
+  line-height: 1;
+}
+#simCard[data-world="2"] .srow .nm {
+  font-weight: 700;
+  font-size: 14.5px;
+}
+#simCard[data-world="2"] .srow .tg {
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: 6px;
+  font-weight: 400;
+}
+#simCard[data-world="2"] .srow code {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 4px;
+  font-size: 11.5px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--muted);
+}
+#simCard[data-world="2"] .srow .lyr {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--sea);
+  float: right;
+  margin-left: 8px;
+}
+#simCard[data-world="2"] .srow.lit {
+  border-color: var(--signal);
+  background: color-mix(in srgb, var(--signal) 16%, var(--panel-2));
+}
+#simCard[data-world="2"] .srow.seen .i {
+  color: var(--ok);
+}
+#simCard[data-world="2"] .srow.boundary {
+  margin-top: 6px;
+  border-top: 3px double var(--rule);
+}
+#simCard[data-world="2"] .tl-k-g {
+  fill: var(--sea);
+}
+#simCard[data-world="2"] .tl-k-a {
+  fill: var(--signal);
+}
+#simCard[data-world="2"] .tl-k-e {
+  fill: var(--idle);
+}
+#simCard[data-world="2"] .tl-k-x {
+  fill: var(--bad);
+}
+#simCard[data-world="2"] .tl-cpu {
+  fill: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+#simCard[data-world="2"] .tl-cpu2 {
+  fill: color-mix(in srgb, var(--ink) 35%, transparent);
+}
+#simCard[data-world="2"] .tl-graph {
+  fill: var(--ok);
+}
+#simCard[data-world="2"] .tl-lane {
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--muted);
+}
+#simCard[data-world="2"] .tl-name {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  fill: #fff;
+  pointer-events: none;
+}
+#simCard[data-world="2"] .tl-name.dk {
+  fill: var(--signal-ink);
+}
+#simCard[data-world="2"] .cbox {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--panel-2);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 14px;
+}
+#simCard[data-world="2"] .cbox .nm {
+  font-weight: 700;
+}
+#simCard[data-world="2"] .cbox .ds {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+#simCard[data-world="2"] .cbox.ok {
+  border-color: var(--ok);
+}
+#simCard[data-world="2"] .cbox.bad {
+  border-color: var(--bad);
+}
+#simCard[data-world="2"] .cgroup {
+  border: 2px dashed var(--rule);
+  border-radius: 10px;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+}
+#simCard[data-world="2"] .cgroup > .gl {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+#simCard[data-world="2"] .cgroup.ctr {
+  border-color: var(--sea);
+}

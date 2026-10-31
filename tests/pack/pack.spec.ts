@@ -26,3 +26,23 @@ test("the test world appears after World 4, and its level can be opened, played 
   await page.press("#cmd", "Enter");
   await expect(page.locator("#out > div").last()).toContainText("World 4");
 });
+
+test("the test world's .xp style stays in its sim panel: the header's XP pill doesn't change", async ({ page }) => {
+  const looks = (sel: string) =>
+    page
+      .locator(sel)
+      .first()
+      .evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return { color: cs.color, fontSize: cs.fontSize, border: cs.borderTopWidth + " " + cs.borderTopStyle };
+      });
+  await page.goto("/");
+  const before = await looks("header .xp");
+  await page.locator('#piers [data-level="test-ping"]').click();
+  await expect(page.locator("#simBody .xp")).toBeVisible();
+  // The pack's style did load and apply inside its own panel…
+  expect(await looks("#simBody .xp")).toEqual({ color: "rgb(255, 0, 0)", fontSize: "40px", border: "4px solid" });
+  // …and left the header's pill, which shares the class name, exactly as it was.
+  expect(await looks("header .xp")).toEqual(before);
+  expect(before.color).not.toBe("rgb(255, 0, 0)");
+});

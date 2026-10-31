@@ -1,0 +1,264 @@
+/* World 0's own styles: things only this world's sim panel draws. Loaded with the pack.
+   Every selector starts with #simCard[data-world="0"], so nothing here can reach the rest of the page
+   (checked by tests/unit/css-scope.test.ts). Shared pieces (chip, tiles, controls) are styled in core.css. */
+#simCard[data-world="0"] textarea {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.5;
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+#simCard[data-world="0"] .tkrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+#simCard[data-world="0"] .tk {
+  --c: var(--sea);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--c) 18%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--c) 60%, transparent);
+  color: var(--ink);
+  white-space: pre;
+}
+#simCard[data-world="0"] .tk.ghost {
+  border-style: dashed;
+  color: var(--muted);
+  background: transparent;
+}
+#simCard[data-world="0"] .astack {
+  display: grid;
+  gap: 6px;
+}
+#simCard[data-world="0"] .aio {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+#simCard[data-world="0"] .ablk {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 10px;
+  text-align: left;
+  border: 1px solid var(--rule);
+  background: var(--panel-2);
+  border-radius: 6px;
+  padding: 7px 10px;
+  width: 100%;
+}
+#simCard[data-world="0"] .ablk span {
+  grid-column: 1;
+  font-size: 12px;
+  color: var(--muted);
+}
+#simCard[data-world="0"] .ablk i {
+  grid-row: 1/3;
+  grid-column: 2;
+  align-self: center;
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--sea);
+}
+#simCard[data-world="0"] .ablk.on {
+  border-color: var(--sea);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--sea) 30%, transparent);
+}
+#simCard[data-world="0"] .alayer {
+  display: grid;
+  grid-template-columns: 62px 1fr 1fr;
+  gap: 6px;
+  align-items: stretch;
+}
+#simCard[data-world="0"] .alayer .ln {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  align-self: center;
+}
+#simCard[data-world="0"] .amore {
+  border: 1px dashed var(--rule);
+  background: transparent;
+  border-radius: 6px;
+  padding: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+#simCard[data-world="0"] .attrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-end;
+  padding-top: 8px;
+}
+#simCard[data-world="0"] .atok {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid var(--rule);
+  background: var(--panel-2);
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-width: 48px;
+}
+#simCard[data-world="0"] .atok .abar {
+  width: 14px;
+  background: var(--signal);
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s;
+}
+#simCard[data-world="0"] .atok .aw {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  min-height: 1.2em;
+}
+#simCard[data-world="0"] .atok .at {
+  font-weight: 700;
+  font-size: 15px;
+}
+#simCard[data-world="0"] .atok.focus {
+  border-color: var(--sea);
+  background: color-mix(in srgb, var(--sea) 16%, var(--panel-2));
+}
+#simCard[data-world="0"] .atok.future {
+  opacity: 0.35;
+}
+#simCard[data-world="0"] .vbar {
+  display: inline-block;
+  height: 10px;
+  background: var(--signal);
+  border-radius: 2px;
+}
+#simCard[data-world="0"] .prow {
+  display: grid;
+  grid-template-columns: 110px auto 48px;
+  gap: 8px;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  margin-top: 4px;
+}
+#simCard[data-world="0"] .pbar {
+  height: 10px;
+  background: var(--sea);
+  border-radius: 2px;
+  display: block;
+}
+#simCard[data-world="0"] .kvgrid {
+  display: grid;
+  gap: 3px;
+  align-items: center;
+  overflow-x: auto;
+}
+#simCard[data-world="0"] .kvl {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+#simCard[data-world="0"] .kvc {
+  display: flex;
+  gap: 1px;
+  height: 16px;
+}
+#simCard[data-world="0"] .kvc i {
+  flex: 1;
+  border-radius: 2px;
+  background: var(--panel-2);
+  border: 1px dashed var(--rule);
+}
+#simCard[data-world="0"] .kvc.kept i {
+  background: var(--ok);
+  border: 0;
+}
+#simCard[data-world="0"] .kvc.new i {
+  background: var(--signal);
+  border: 0;
+}
+#simCard[data-world="0"] .kvc.redo i {
+  background: var(--bad);
+  border: 0;
+  opacity: 0.75;
+}
+#simCard[data-world="0"] .kvdot {
+  height: 6px;
+}
+#simCard[data-world="0"] .gbars {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  min-height: 90px;
+  padding-top: 4px;
+}
+#simCard[data-world="0"] .gbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+#simCard[data-world="0"] .gbar span {
+  width: 22px;
+  border-radius: 2px 2px 0 0;
+  display: block;
+}
+#simCard[data-world="0"] .gbar i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+@media (max-width: 520px) {
+  #simCard[data-world="0"] .alayer {
+    grid-template-columns: 1fr 1fr;
+  }
+  #simCard[data-world="0"] .alayer .ln {
+    grid-column: 1/-1;
+  }
+}
+#simCard[data-world="0"] .tkb {
+  cursor: pointer;
+}
+#simCard[data-world="0"] .tkb.sel {
+  outline: 2px solid var(--signal);
+  outline-offset: 1px;
+}
+#simCard[data-world="0"] .moewrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+#simCard[data-world="0"] .xgrid {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: 3px;
+  max-width: 420px;
+}
+#simCard[data-world="0"] .xcell {
+  aspect-ratio: 1;
+  max-width: 100%;
+  border-radius: 2px;
+  background: var(--panel-2);
+  border: 1px solid var(--rule);
+}
+#simCard[data-world="0"] .xcell.on {
+  background: var(--signal);
+  border-color: var(--signal);
+}
+@media (max-width: 760px) {
+  #simCard[data-world="0"] .moewrap {
+    grid-template-columns: 1fr;
+  }
+}

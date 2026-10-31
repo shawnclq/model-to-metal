@@ -103,6 +103,7 @@ function startLevel(L: Playable) {
   $(".m-actions").hidden = false;
   $("#stripCard").hidden = false;
   G.level = L;
+  $("#simCard").dataset.world = String(L.world); // scopes the world's own styles (each pack.css) to its sim panel
   G.S = packFor(L.world).freshState();
   if (L.setup) L.setup(G.S!);
   G.hints = 0;
