@@ -1,0 +1,28 @@
+Task 9.1 verify: no CLAUDE.md text tells people to edit reference/source-parts/
+Date: 2026-10-31. CLAUDE.md rewritten on branch harness/modular-web-build (base commit 9d92ac6).
+Checks run with ripgrep over CLAUDE.md (the Grep tool, same as `rg -n PATTERN CLAUDE.md`).
+
+## rg -n "source-parts" CLAUDE.md
+14:The game is a Vite + TypeScript web app. **`src/` is the source of truth** for behaviour, content and look. `reference/` holds the original single-file version (`reference/model-to-metal.html`, its `source-parts/` and its old tests). It is **frozen**: kept for history and as the recording source for the parity test, never edited. Don't change anything under `reference/`, and don't tell anyone to.
+
+-> One match. It is the sentence that says reference/ (including source-parts/) is frozen and never edited.
+   No text tells people to edit reference/source-parts/.
+
+## rg -n "reference/" CLAUDE.md
+14: (the same line as above; the only mention of reference/)
+
+## rg -n "[0-9][a-f]?-(head|body|data|engine|w0b?|levels|catalog|render|app|more)\.(js|html)" CLAUDE.md
+No matches found
+-> The old 25-part table (1-head.html, 3-data.js, 7-app.js ...) and the "6-render.js calls ctrlsW0b from 7c-w0b.js" lesson are gone.
+
+## Required topics from task 9.1 (rg -n over CLAUDE.md)
+14:  "`src/` is the source of truth" ... "`reference/` ... is **frozen**"       (src/ is the source of truth, reference/ frozen)
+30:  ## Building a change (long-running harness)                                (section kept unchanged, as instructed)
+41:  ## How the code is organised  -> table of src/core, src/shared, src/packs, tests/ (new layout table replaces the parts table)
+62:  ### Where code goes                                                        (the "where code goes" rule)
+69:  ### How to add a world                                                     (pack, state type, manifest entry, guards, pack.css prefix, SOON, parity script)
+152: `npm run check` is the whole suite ... parity, visual, loading and pack    (testing becomes npm run check)
+159: "Changing what the player sees on purpose." ... npm run parity:update      (parity:update for deliberate changes)
+165: Known bugs kept on purpose, for parity (World 0 foundry load/prompt/status/kv error, World 0 nvidia-smi NaN, inspect hint)
+
+RESULT: PASS. CLAUDE.md never tells anyone to edit reference/source-parts/; every topic listed in task 9.1 is present.
