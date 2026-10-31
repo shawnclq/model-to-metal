@@ -68,7 +68,7 @@ Each task: create `src/packs/<world>/` with `index.ts`, `levels.ts` (final order
 
 ## 9. Hand-over
 
-- [ ] 9.1 Update `CLAUDE.md`:
+- [x] 9.1 Update `CLAUDE.md`:
   - `src/` is now the source of truth, and `reference/` is frozen;
   - the new layout table (core, shared, packs, tests) replaces the parts table;
   - the "where code goes" rule;
@@ -77,6 +77,7 @@ Each task: create `src/packs/<world>/` with `index.ts`, `levels.ts` (final order
   - the known bugs kept for parity.
 
   Verify: no CLAUDE.md text tells people to edit `reference/source-parts/`.
+  - Done: rewritten around `src/` (layout table for core, shared, packs and tests; the layering rule; where code goes; how to add a world; `npm run check` and the parity snapshot rules; the three known bugs kept for parity). "Building a change" is unchanged. The only mention of `reference/` says it is frozen. Evidence: `evidence/modular-web-build/9.1-claude-md-grep.txt`.
 - [ ] 9.2 Add a short `README.md` (what it is, `npm install`, `npm run dev`, `npm run check`), and mark the Vite/modules step as done in `docs/webapp-ideas.md`. Verify: following the README on a clean clone starts the game.
 - [ ] 9.3 Final check: `npm run check` passes locally and in CI on GitHub, `PARITY_TARGET=reference npm run test:parity` still passes (so `reference.json` still describes the original game, and every change to it came from the reference), and the game can be played through on a phone-sized window in `npm run preview`. Verify: CI link green, plus a brief manual play note.
 
