@@ -1,0 +1,24 @@
+Task 9.3 verify: final check (local suite, CI, reference parity, play-through)
+Branch harness/modular-web-build at cd3fd19. Ticked by a human (9.3 is in scripts/human-tasks.txt).
+
+## npm run check (local, 2026-11-02): exit 0
+ Test Files  6 passed (6)
+      Tests  100 passed (100)
+  parity   1 passed (45.9s)
+  visual   5 passed (1.0m)
+  loading  5 passed (4.6s)
+  pack     2 passed (3.0s)
+
+## PARITY_TARGET=reference npm run test:parity (local, 2026-11-02): exit 0
+  ✓  1 [parity] › tests/parity/parity.spec.ts:15:1 › parity: reference plays the same as reference.json (44.4s)
+  1 passed (44.7s)
+-> reference.json still describes the original single file.
+
+## CI on GitHub (PR #1, commit cd3fd19): both runs green
+  check  pass  3m28s  https://github.com/shawnclq/model-to-metal/actions/runs/41206137546
+  check  pass  3m39s  https://github.com/shawnclq/model-to-metal/actions/runs/41206141795
+
+## Play-through (owner, 2026-11-03)
+  The owner played the game locally on a Mac (npm run dev / npm run preview) and reported it working.
+
+RESULT: PASS
