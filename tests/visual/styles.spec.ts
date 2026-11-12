@@ -142,6 +142,9 @@ test(`styles: ${target} computes the same styles as the reference at every step`
   let waiting: { snap: Record<string, string>; go: (e?: Error) => void } | null = null;
   let steps = 0;
   const meet = (page: Page) => async (scene: string, step: string) => {
+    // Park the pointer off the content first. Why: after a redraw Chromium updates :hover on its own timer, so the
+    // element left under the last click (e.g. a .die box) was sometimes hovered on one side only. Flaky in CI.
+    await page.mouse.move(0, 0);
     const snap = await snapshot(page);
     if (!waiting) {
       await new Promise<void>((res, rej) => (waiting = { snap, go: (e) => (e ? rej(e) : res()) }));

@@ -1,0 +1,57 @@
+Task 9.2 verify: following the README on a clean clone starts the game
+Date: 2026-10-31. Branch harness/modular-web-build at 8a3f3c2 plus the uncommitted README.md and docs/webapp-ideas.md.
+
+CAVEAT (read this first): this session's permission mode denied every way of making a separate clean copy
+(git clone, git worktree add, git archive | tar, and a worktree subagent that could not run shell commands).
+The nearest stand-in was run in the main checkout instead:
+  - `npm ci` deletes node_modules and reinstalls exactly from package-lock.json (the state a clean clone is in
+    after `npm install`), then the README's `npm run dev` was followed literally.
+  - The only difference from a clone is untracked, git-ignored files (dist/, test-results/), which `npm run dev`
+    does not read. A human can repeat the literal clone check in task 9.3 if wanted.
+
+## README.md followed (the "Run it" section)
+    You need Node 20 or newer.
+    npm install
+    npm run dev
+    Open the address Vite prints (normally http://localhost:5173) and pick a level.
+Node here: v24.13.1.
+
+## git status --short (before npm ci)
+ M README.md
+ M docs/webapp-ideas.md
+
+## npm ci (tail)
+npm warn install-scripts 1 package has install scripts not yet covered by allowScripts:
+npm warn install-scripts   fsevents@2.3.3 (install: (install scripts present))
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+(ls node_modules | wc -l -> 69 entries; the fsevents warning is npm's install-scripts notice, not an error)
+
+## npm run dev (stdout)
+> model-to-metal@0.1.0 dev
+> vite
+
+  VITE v8.3.4  ready in 233 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+## node scratchpad/check-dev.mjs http://localhost:5173/
+(Playwright Chromium: opens the page, waits for the home screen's level buttons, opens World 1 Level 1
+"Meet the chip", types nvidia-smi, and fails on any page error)
+url: http://localhost:5173/
+title: Model to Metal
+home screen: 40 level buttons under #piers, 5 headings
+opened level: sim title = "GPU bench · H100 SXM"
+mission panel mentions "Meet the chip": true
+terminal answered nvidia-smi: true
+page errors: none
+RESULT: PASS, the game starts from a clean clone
+
+(40 buttons = 36 levels + 4 labs; 5 headings = Worlds 0–4.)
+
+## docs/webapp-ideas.md
+Outline items 1 (Vite + modules) and 2 (stable level IDs) and suggested-session steps 2–4 are struck through
+and marked Done with the change that did them; step 1 now points readers at CLAUDE.md and src/.
+
+RESULT: PASS (with the clean-install stand-in described in the caveat above).

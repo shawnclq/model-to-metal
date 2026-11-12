@@ -34,8 +34,10 @@ def deny(reason):
 if tool == "Bash":
     # Drop stream plumbing (2>&1, >/dev/null) first so read-only commands are not mistaken for writes.
     cmd = re.sub(r"\d*>&\d|\d*>\s*/dev/null", "", ti.get("command", ""))
-    if re.search(r"openspec/changes/[^\s]*tasks\.md|\btasks\.md\b", cmd) and \
-       re.search(r"sed\s+-i|perl\s+-[a-z]*i|>|\btee\b|\bmv\b|\bcp\b|python|\bawk\b", cmd):
+    # A write counts only when it targets tasks.md: a redirect into it, or a writing tool given it as an argument.
+    # Why: a ">" elsewhere in the command (an email in a commit message) is not a write to tasks.md.
+    T = r"\S*tasks\.md"
+    if re.search(rf">\s*{T}|(sed\s+-i|perl\s+-[a-z]*i)[^|;&]*{T}|\b(tee|mv|cp|python3?|awk)\b[^|;&]*{T}", cmd):
         deny("Tick tasks in tasks.md with the Edit tool, not Bash, so the evidence gate can check them.")
     raise SystemExit
 

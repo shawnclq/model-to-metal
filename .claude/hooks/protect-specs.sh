@@ -32,8 +32,10 @@ def deny(what):
 if tool == "Bash":
     # Drop stream plumbing (2>&1, >/dev/null) first so read-only commands are not mistaken for writes.
     cmd = re.sub(r"\d*>&\d|\d*>\s*/dev/null", "", ti.get("command", ""))
-    if re.search(PROTECTED, cmd) and \
-       re.search(r"sed\s+-i|perl\s+-[a-z]*i|>|\btee\b|\bmv\b|\bcp\b|\brm\b|\btouch\b|python|\bawk\b", cmd):
+    # A write counts only when it targets a protected path: a redirect into it, or a writing tool given it as an argument.
+    # Why: a ">" elsewhere in the command (an email in a commit message) is not a write to the plan.
+    P = PROTECTED
+    if re.search(rf">\s*\S*{P}|(sed\s+-i|perl\s+-[a-z]*i)[^|;&]*{P}|\b(tee|mv|cp|rm|touch|python3?|awk)\b[^|;&]*{P}", cmd):
         deny("That command writes to a protected OpenSpec file, which")
     raise SystemExit
 
